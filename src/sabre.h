@@ -61,6 +61,16 @@ exit(EXIT_SUCCESS); \
 break;
 /* end code drawn from system.h */
 
+#define MAX_BARCODE_LENGTH 100
+#define MAX_FILENAME_LENGTH 200
+
+
+typedef struct listel {
+	char* bc;
+	FILE* bcfile;
+	struct listel *next;
+} barcode_data;
+
 /* Function Prototypes */
 int single_main (int argc, char *argv[]);
 int paired_main (int argc, char *argv[]);
