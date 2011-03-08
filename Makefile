@@ -18,8 +18,8 @@ default: build
 demulti_single.o: $(SDIR)/demulti_single.c $(SDIR)/sabre.h $(SDIR)/kseq.h
 	$(CC) $(CFLAGS) $(OPT) -c $(SDIR)/$*.c
 
-#trim_paired.o: $(SDIR)/trim_paired.c $(SDIR)/sickle.h $(SDIR)/kseq.h
-#	$(CC) $(CFLAGS) $(OPT) -c $(SDIR)/$*.c
+demulti_paired.o: $(SDIR)/demulti_paired.c $(SDIR)/sabre.h $(SDIR)/kseq.h
+	$(CC) $(CFLAGS) $(OPT) -c $(SDIR)/$*.c
 
 sabre.o: $(SDIR)/sabre.c $(SDIR)/sabre.h
 	$(CC) $(CFLAGS) $(OPT) -c $(SDIR)/$*.c
@@ -34,7 +34,7 @@ dist:
 	tar -zcf $(ARCHIVE).tar.gz src Makefile
 
 #build: sliding.o trim_single.o trim_paired.o sickle.o
-build: demulti_single.o sabre.o
+build: demulti_single.o demulti_paired.o sabre.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(OPT) $? -o $(PROGRAM_NAME)
 
 debug:

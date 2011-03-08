@@ -1,28 +1,6 @@
 #ifndef SABRE_H
 #define SABRE_H
 
-#include <limits.h>
-#include <zlib.h>
-#include "kseq.h"
-
-
-/* KSEQ_INIT() cannot be called here, because we only need the types
-   defined. Calling KSEQ_INIT() would also define functions, leading
-   to an unused function warning with GCC. So, the basic typedefs
-   kseq.h has are included here, and each file that reads needs:
-
-   __KS_GETC(gzread, BUFFER_SIZE)
-   __KS_GETUNTIL(gzread, BUFFER_SIZE)
-   __KSEQ_READ
-
-*/
-
-#define BUFFER_SIZE 4096
-__KS_TYPE(gzFile)
-__KS_BASIC(gzFile, BUFFER_SIZE)
-__KSEQ_TYPE(gzFile)
-__KSEQ_BASIC(gzFile)
-
 #ifndef PROGRAM_NAME
 #define PROGRAM_NAME "sabre"
 #endif
@@ -70,6 +48,14 @@ typedef struct listel {
 	FILE* bcfile;
 	struct listel *next;
 } barcode_data;
+
+typedef struct listel_p {
+	char* bc;
+	FILE* bcfile1;
+	FILE* bcfile2;
+	struct listel_p *next;
+} barcode_data_paired;
+
 
 /* Function Prototypes */
 int single_main (int argc, char *argv[]);

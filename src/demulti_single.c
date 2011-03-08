@@ -4,16 +4,18 @@
 #include <zlib.h>
 #include <stdio.h>
 #include <getopt.h>
+#include <limits.h>
+#include <zlib.h>
 #include "sabre.h"
 #include "kseq.h"
 
-__KS_GETC(gzread, BUFFER_SIZE)
-__KS_GETUNTIL(gzread, BUFFER_SIZE)
-__KSEQ_READ
+KSEQ_INIT(gzFile, gzread)
+
 
 static struct option single_long_options[] = {
   {"fastq-file", required_argument, 0, 'f'},
   {"barcode-file", required_argument, 0, 'b'},
+  {"unknown-output", required_argument, 0, 'u'},
   {GETOPT_HELP_OPTION_DECL},
   {GETOPT_VERSION_OPTION_DECL},
   {NULL, 0, NULL, 0}
@@ -27,7 +29,7 @@ Options:\n\
 -f, --fastq-file, Input fastq/a file (required)\n", PROGRAM_NAME);
 
   fprintf (stderr, "-b, --barcode-file, File with barcodes and output file names, one per line (required)\n\
--u, --unknown-file, Output file that contains records with no barcodes found. (required)\n\
+-u, --unknown-output, Output file that contains records with no barcodes found. (required)\n\
 --help, display this help and exit\n\
 --version, output version information and exit\n\n");
 
@@ -179,6 +181,8 @@ int single_main (int argc, char *argv[]) {
 
 	kseq_destroy (fqrec);
 	gzclose (se);
+	fclose (barfile);
+	fclose (unknownfile);
 
 	curr = head;
 	while (curr) {
