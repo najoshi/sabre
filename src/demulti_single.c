@@ -51,6 +51,8 @@ int single_main (int argc, char *argv[]) {
 	barcode_data *curr, *head;
 	char barcode [MAX_BARCODE_LENGTH];
 	char baroutfn [MAX_FILENAME_LENGTH];
+	int num_unknown=0;
+	int total=0;
 
 	while (1) {
 		int option_index = 0;
@@ -122,6 +124,7 @@ int single_main (int argc, char *argv[]) {
 	}
 
 
+	/* Set up a linked list of the barcode data */
 	head = NULL;
 	while (fscanf (barfile, "%s%s", barcode, baroutfn) != EOF) {
 		curr = (barcode_data*) malloc (sizeof (barcode_data));
@@ -129,6 +132,7 @@ int single_main (int argc, char *argv[]) {
 		strcpy (curr->bc, barcode);
 
 		curr->bcfile = fopen (baroutfn, "w");
+		curr->num_records = 0;
 
 		curr->next = head;
 		head = curr;
@@ -139,6 +143,8 @@ int single_main (int argc, char *argv[]) {
 
 	while (kseq_read (fqrec) >= 0) {
 
+		/* Go through linked list of barcode data and compare each barcode */
+		/* with the sequence until a match is found or no match is found for any */
 		curr = head;
 		while (curr) {
 			if (strncmp (curr->bc, fqrec->seq.s, strlen (curr->bc)) == 0) {
@@ -148,6 +154,8 @@ int single_main (int argc, char *argv[]) {
 			curr = curr->next;
 		}
 
+
+		/* If barcode data is found, output to demultiplexed file, else output to unknown file */
 		if (curr != NULL) {
 			fprintf (curr->bcfile, "@%s", fqrec->name.s);
 			if (fqrec->comment.l) fprintf (curr->bcfile, " %s\n", fqrec->comment.s);
@@ -160,6 +168,8 @@ int single_main (int argc, char *argv[]) {
 			else fprintf (curr->bcfile, "\n");
 
 			fprintf (curr->bcfile, "%s\n", (fqrec->qual.s)+strlen(curr->bc));
+
+			curr->num_records++;
 		}
 
 		else {
@@ -174,10 +184,21 @@ int single_main (int argc, char *argv[]) {
 			else fprintf (unknownfile, "\n");
 
 			fprintf (unknownfile, "%s\n", fqrec->qual.s);
+
+			num_unknown++;
 		}
+
+		total++;
 	}
 
-	/*fprintf (stderr, "\nFastQ records kept: %d\nFastQ records discarded: %d\n\n", kept, discard);*/
+
+	fprintf (stderr, "\nTotal FastQ records: %d\n\n", total);
+	curr = head;
+	while (curr) {
+		fprintf (stderr, "FastQ records for barcode %s: %d\n", curr->bc, curr->num_records);
+		curr = curr->next;
+	}
+	fprintf (stderr, "\nFastQ records with no barcode match: %d\n\n", num_unknown);
 
 	kseq_destroy (fqrec);
 	gzclose (se);

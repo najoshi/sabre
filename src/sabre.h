@@ -45,6 +45,7 @@ break;
 
 typedef struct listel {
 	char* bc;
+	int num_records;
 	FILE* bcfile;
 	struct listel *next;
 } barcode_data;
