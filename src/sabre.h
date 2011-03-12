@@ -52,6 +52,7 @@ typedef struct listel {
 
 typedef struct listel_p {
 	char* bc;
+	int num_records;
 	FILE* bcfile1;
 	FILE* bcfile2;
 	struct listel_p *next;

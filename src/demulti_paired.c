@@ -64,6 +64,8 @@ int paired_main (int argc, char *argv[]) {
 	char barcode [MAX_BARCODE_LENGTH];
 	char baroutfn1 [MAX_FILENAME_LENGTH];
 	char baroutfn2 [MAX_FILENAME_LENGTH];
+	int num_unknown=0;
+	int total=0;
 
 
 	while (1) {
@@ -166,6 +168,7 @@ int paired_main (int argc, char *argv[]) {
 	}
 
 
+	/* Creating linked list of barcode data */
 	head = NULL;
 	while (fscanf (barfile, "%s%s%s", barcode, baroutfn1, baroutfn2) != EOF) {
 		curr = (barcode_data_paired*) malloc (sizeof (barcode_data_paired));
@@ -174,6 +177,7 @@ int paired_main (int argc, char *argv[]) {
 
 		curr->bcfile1 = fopen (baroutfn1, "w");
 		curr->bcfile2 = fopen (baroutfn2, "w");
+		curr->num_records = 0;
 
 		curr->next = head;
 		head = curr;
@@ -192,6 +196,8 @@ int paired_main (int argc, char *argv[]) {
 		}
 
 
+		/* Go through all barcode data and check if any match to beginning of read */
+		/* If it does then put read in that barcode's file, otherwise put in unknown file */
 		curr = head;
 		while (curr) {
 			if (strncmp (curr->bc, fqrec1->seq.s, strlen (curr->bc)) == 0) {
@@ -229,6 +235,8 @@ int paired_main (int argc, char *argv[]) {
 
 			if (!both_have_barcodes) fprintf (curr->bcfile2, "%s\n", fqrec2->qual.s);
 			else fprintf (curr->bcfile2, "%s\n", (fqrec2->qual.s)+strlen(curr->bc));
+
+			curr->num_records += 2;
 		}
 
 		else {
@@ -256,7 +264,11 @@ int paired_main (int argc, char *argv[]) {
 			else fprintf (unknownfile2, "\n");
 
 			fprintf (unknownfile2, "%s\n", fqrec2->qual.s);
+
+			num_unknown += 2;
 		}
+
+		total += 2;
 	}
 
 	if (l1 < 0) {
@@ -266,7 +278,15 @@ int paired_main (int argc, char *argv[]) {
 		}
 	}
 
-	/*fprintf (stderr, "\nFastQ paired records kept: %d (%d pairs)\nFastQ single records kept: %d (from PE1: %d, from PE2: %d)\nFastQ paired records discarded: %d (%d pairs)\nFastQ single records discarded: %d (from PE1: %d, from PE2: %d)\n\n", kept_p, (kept_p/2), (kept_s1+kept_s2), kept_s1, kept_s2, discard_p, (discard_p/2), (discard_s1+discard_s2), discard_s1, discard_s2);*/
+
+	fprintf (stderr, "\nTotal FastQ records: %d (%d pairs)\n\n", total, total/2);
+	curr = head;
+	while (curr) {
+		fprintf (stderr, "FastQ records for barcode %s: %d (%d pairs)\n", curr->bc, curr->num_records, curr->num_records/2);
+		curr = curr->next;
+	}
+	fprintf (stderr, "\nFastQ records with no barcode match: %d (%d pairs)\n\n", num_unknown, num_unknown/2);
+
 
 	kseq_destroy (fqrec1);
 	kseq_destroy (fqrec2);
