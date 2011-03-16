@@ -1,4 +1,4 @@
-# sabre - A barcode demultiplexing and trimming tool for FastQ/A files
+# sabre - A barcode demultiplexing and trimming tool for FastQ files
 
 ## About
 
@@ -7,14 +7,16 @@ per lane of sample and that number increases at a dizzying rate.  Barcoding
 individual sequences for multiple lines or multiple species is a cost-efficient
 method to sequence and analyze a broad range of data.
 
-Sabre is a tool that will demultiplex barcoded reads into separate files.  It
-will work on both single-end and paired-end data, in either fastq or fasta
-format.  It simply compares the provided barcodes with each read and separates
+Sabre is a tool that will demultiplex barcoded reads into separate files. 
+It will work on both single-end and paired-end data in fastq format.
+It simply compares the provided barcodes with each read and separates
 the read into its appropriate barcode file, after stripping the barcode from
 the read (and also stripping the quality values of the barcode bases).  If
 a read does not have a recognized barcode, then it is put into the unknown file.
 
-Sabre also supports gzipped file inputs.
+Sabre also supports gzipped file inputs.  Also, since sabre does not use the 
+quality values in any way, it can be used on fasta data that is converted to
+fastq by creating fake quality values.
 
 ## Requirements 
 

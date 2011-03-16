@@ -23,7 +23,7 @@ static struct option single_long_options[] = {
 
 void single_usage (int status) {
   
-  fprintf (stderr, "\nUsage: %s se -f <fastq/a sequence file> -b <barcode file> -u <unknown barcode output file>\n\
+  fprintf (stderr, "\nUsage: %s se -f <fastq sequence file> -b <barcode file> -u <unknown barcode output file>\n\
 \n\
 Options:\n\
 -f, --fastq-file, Input fastq/a file (required)\n", PROGRAM_NAME);
