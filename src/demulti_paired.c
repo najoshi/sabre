@@ -18,7 +18,7 @@ static struct option paired_long_options[] = {
 	{"barcode-file", required_argument, 0, 'b'},
 	{"unknown-output1", required_argument, 0, 'u'},
 	{"unknown-output2", required_argument, 0, 'w'},
-	{"both-barcodes", optional_argument, 0, 'h'},
+	{"both-barcodes", optional_argument, 0, 'c'},
 	{GETOPT_HELP_OPTION_DECL},
 	{GETOPT_VERSION_OPTION_DECL},
 	{NULL, 0, NULL, 0}
@@ -31,10 +31,10 @@ Options:\n\
 -f, --pe-file1, Input paired-end fastq file 1 (required, must have same number of records as pe2)\n\
 -r, --pe-file2, Input paired-end fastq file 2 (required, must have same number of records as pe1)\n", PROGRAM_NAME);
 
-	fprintf (stderr, "-b, --barcode-file, File with barcodes and output file names, one per line (required)\n\
+	fprintf (stderr, "-b, --barcode-file, File with barcode and two output file names per line (required)\n\
 -u, --unknown-output1, Output paired-end file 1 that contains records with no barcodes found. (required)\n\
 -w, --unknown-output2, Output paired-end file 2 that contains records with no barcodes found. (required)\n\
--h, --both-barcodes, Optional flag that indicates that both fastq files have barcodes.\n\
+-c, --both-barcodes, Optional flag that indicates that both fastq files have barcodes.\n\
 --help, display this help and exit\n\
 --version, output version information and exit\n\n");
 
@@ -102,7 +102,7 @@ int paired_main (int argc, char *argv[]) {
 				strcpy (unknownfn2, optarg);
 				break;
 
-			case 'h':
+			case 'c':
 				both_have_barcodes=1;
 				break;
 
