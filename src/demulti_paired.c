@@ -70,7 +70,7 @@ int paired_main (int argc, char *argv[]) {
 
 	while (1) {
 		int option_index = 0;
-		optc = getopt_long (argc, argv, "dhf:r:b:u:w:", paired_long_options, &option_index);
+		optc = getopt_long (argc, argv, "dcf:r:b:u:w:", paired_long_options, &option_index);
 
 		if (optc == -1) break;
 
