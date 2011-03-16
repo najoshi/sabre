@@ -48,7 +48,7 @@ int single_main (int argc, char *argv[]) {
 	char *barfn=NULL;
 	char *infn=NULL;
 	char *unknownfn=NULL;
-	barcode_data *curr, *head;
+	barcode_data *curr, *head, *temp;
 	char barcode [MAX_BARCODE_LENGTH];
 	char baroutfn [MAX_FILENAME_LENGTH];
 	int num_unknown=0;
@@ -205,10 +205,17 @@ int single_main (int argc, char *argv[]) {
 	fclose (barfile);
 	fclose (unknownfile);
 
+	free (infn);
+	free (unknownfn);
+	free (barfn);
+
 	curr = head;
 	while (curr) {
 		fclose (curr->bcfile);
+		free (curr->bc);
+		temp = curr;
 		curr = curr->next;
+		free (temp);
 	}
 
 	return 0;

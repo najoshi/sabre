@@ -60,7 +60,7 @@ int paired_main (int argc, char *argv[]) {
 	char *unknownfn1=NULL;
 	char *unknownfn2=NULL;
 	int both_have_barcodes=0;
-	barcode_data_paired *curr, *head;
+	barcode_data_paired *curr, *head, *temp;
 	char barcode [MAX_BARCODE_LENGTH];
 	char baroutfn1 [MAX_FILENAME_LENGTH];
 	char baroutfn2 [MAX_FILENAME_LENGTH];
@@ -296,11 +296,20 @@ int paired_main (int argc, char *argv[]) {
 	fclose (unknownfile2);
 	fclose (barfile);
 
+	free (infn1);
+	free (infn2);
+	free (barfn);
+	free (unknownfn1);
+	free (unknownfn2);
+
 	curr = head;
 	while (curr) {
 		fclose (curr->bcfile1);
 		fclose (curr->bcfile2);
+		free (curr->bc);
+		temp = curr;
 		curr = curr->next;
+		free (temp);
 	}
 
 	return EXIT_SUCCESS;
