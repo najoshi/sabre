@@ -27,7 +27,7 @@ void single_usage (int status) {
   fprintf (stderr, "\nUsage: %s se -f <fastq sequence file> -b <barcode file> -u <unknown barcode output file>\n\
 \n\
 Options:\n\
--f, --fastq-file, Input fastq/a file (required)\n", PROGRAM_NAME);
+-f, --fastq-file, Input fastq file (required)\n", PROGRAM_NAME);
 
   fprintf (stderr, "-b, --barcode-file, File with barcode and output file name per line (required)\n\
 -u, --unknown-output, Output file that contains records with no barcodes found. (required)\n\
