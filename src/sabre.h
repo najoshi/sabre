@@ -62,5 +62,6 @@ typedef struct listel_p {
 /* Function Prototypes */
 int single_main (int argc, char *argv[]);
 int paired_main (int argc, char *argv[]);
+int strncmp_with_mismatch (const char *s1, const char *s2, register size_t n, register size_t mismatch);
 
 #endif /*SABRE_H*/

@@ -12,11 +12,15 @@ It will work on both single-end and paired-end data in fastq format.
 It simply compares the provided barcodes with each read and separates
 the read into its appropriate barcode file, after stripping the barcode from
 the read (and also stripping the quality values of the barcode bases).  If
-a read does not have a recognized barcode, then it is put into the unknown file.
+a read does not have a recognized barcode, then it is put into the unknown file.  
+Sabre also has an option (-m) to allow mismatches of the barcodes.
 
 Sabre also supports gzipped file inputs.  Also, since sabre does not use the 
 quality values in any way, it can be used on fasta data that is converted to
 fastq by creating fake quality values.
+
+Finally, after demultiplexing, sabre outputs a summary of how many records
+went into each barcode file.
 
 ## Requirements 
 
@@ -39,7 +43,7 @@ Then, copy or move "sabre" to a directory in your $PATH.
 Sabre has two modes to work with both paired-end and single-end
 reads: `sabre se` and `sabre pe`.
 
-Running sabre by itself will give print the help:
+Running sabre by itself will print the help:
 
     sabre
 
@@ -55,7 +59,7 @@ specific to those commands:
 the reads demultiplexed into separate files using the file names from the data file.
 The barcodes will be stripped from the reads and the quality values of the barcode
 bases will also be removed.  Any reads with unknown barcodes get put into the "unknown" 
-file specified on the command line.
+file specified on the command line.  The -m option allows for mismatches in the barcodes.
 
 #### Barcode data file format for single end
 
@@ -68,6 +72,7 @@ Be aware that if you do not format the barcode data file correctly, sabre will n
 #### Example
 
     sabre se -f input_file.fastq -b barcode_data.txt -u unknown_barcode.fastq
+    sabre se -m 1 -f input_file.fastq -b barcode_data.txt -u unknown_barcode.fastq
 
 ### Sabre Paired End (`sabre pe`)
 
@@ -77,7 +82,8 @@ data file.  The barcodes will be stripped from the reads and the quality values 
 bases will also be removed.  Any reads with unknown barcodes get put into the "unknown" files 
 specified on the command line.  It also has an option (-c) to remove barcodes from both files.  
 Using this option means that if sabre finds a barcode in the first file, it assumes the paired 
-read in the other file has the same barcode and will strip it (along with the quality values).
+read in the other file has the same barcode and will strip it (along with the quality values).  
+The -m option allows for mismatches in the barcodes.
 
 #### Barcode data file format for paired end
 
@@ -95,3 +101,5 @@ Be aware that if you do not format the barcode data file correctly, sabre will n
     sabre pe -c -f input_file1.fastq -r input_file2.fastq -b barcode_data.txt \
     -u unknown_barcode1.fastq -w unknown_barcode1.fastq
 
+    sabre pe -m 2 -f input_file1.fastq -r input_file2.fastq -b barcode_data.txt \
+    -u unknown_barcode1.fastq -w unknown_barcode1.fastq

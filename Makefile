@@ -1,5 +1,5 @@
 PROGRAM_NAME = sabre
-VERSION = 0.90
+VERSION = 1.00
 CC = gcc
 CFLAGS = -Wall -pedantic -DVERSION=$(VERSION)
 DEBUG = -g
@@ -12,8 +12,8 @@ SDIR = src
 
 default: build
 
-#sliding.o: $(SDIR)/sliding.c $(SDIR)/kseq.h $(SDIR)/sickle.h
-#	$(CC) $(CFLAGS) $(OPT) -c $(SDIR)/$*.c
+barcode.o: $(SDIR)/barcode.c $(SDIR)/sabre.h
+	$(CC) $(CFLAGS) $(OPT) -c $(SDIR)/$*.c
 
 demulti_single.o: $(SDIR)/demulti_single.c $(SDIR)/sabre.h $(SDIR)/kseq.h
 	$(CC) $(CFLAGS) $(OPT) -c $(SDIR)/$*.c
@@ -34,7 +34,7 @@ dist:
 	tar -zcf $(ARCHIVE).tar.gz src Makefile
 
 #build: sliding.o trim_single.o trim_paired.o sickle.o
-build: demulti_single.o demulti_paired.o sabre.o
+build: barcode.o demulti_single.o demulti_paired.o sabre.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(OPT) $? -o $(PROGRAM_NAME)
 
 debug:
