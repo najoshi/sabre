@@ -33,7 +33,6 @@ distclean: clean
 dist:
 	tar -zcf $(ARCHIVE).tar.gz src Makefile
 
-#build: sliding.o trim_single.o trim_paired.o sickle.o
 build: barcode.o demulti_single.o demulti_paired.o sabre.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(OPT) $? -o $(PROGRAM_NAME)
 
