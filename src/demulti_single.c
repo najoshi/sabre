@@ -17,6 +17,7 @@ static struct option single_long_options[] = {
   {"barcode-file", required_argument, 0, 'b'},
   {"unknown-output", required_argument, 0, 'u'},
   {"max-mismatch", optional_argument, 0, 'm'},
+  {"quiet", optional_argument, 0, 'z'},
   {GETOPT_HELP_OPTION_DECL},
   {GETOPT_VERSION_OPTION_DECL},
   {NULL, 0, NULL, 0}
@@ -32,6 +33,7 @@ Options:\n\
   fprintf (stderr, "-b, --barcode-file, File with barcode and output file name per line (required)\n\
 -u, --unknown-output, Output file that contains records with no barcodes found. (required)\n\
 -m <n>, --max-mismatch <n>, Optional argument that is the maximum number of mismatches allowed in a barcode. Default 0.\n\
+--quiet, don't output matching info\n\
 --help, display this help and exit\n\
 --version, output version information and exit\n\n");
 
@@ -56,10 +58,11 @@ int single_main (int argc, char *argv[]) {
 	int num_unknown=0;
 	int total=0;
 	int mismatch=0;
+	int quiet=0;
 
 	while (1) {
 		int option_index = 0;
-		optc = getopt_long (argc, argv, "df:b:u:m:", single_long_options, &option_index);
+		optc = getopt_long (argc, argv, "df:b:u:m:z", single_long_options, &option_index);
 
 		if (optc == -1) break;
 
@@ -83,6 +86,10 @@ int single_main (int argc, char *argv[]) {
 
 			case 'm':
 				mismatch = atoi (optarg);
+				break;
+
+			case 'z':
+				quiet=1;
 				break;
 
 			case 'd':
@@ -199,14 +206,16 @@ int single_main (int argc, char *argv[]) {
 	}
 
 
-	fprintf (stderr, "\nTotal FastQ records: %d\n\n", total);
-	curr = head;
-	while (curr) {
-		fprintf (stderr, "FastQ records for barcode %s: %d\n", curr->bc, curr->num_records);
-		curr = curr->next;
+	if (!quiet) {
+		fprintf (stdout, "\nTotal FastQ records: %d\n\n", total);
+		curr = head;
+		while (curr) {
+			fprintf (stdout, "FastQ records for barcode %s: %d\n", curr->bc, curr->num_records);
+			curr = curr->next;
+		}
+		fprintf (stdout, "\nFastQ records with no barcode match: %d\n", num_unknown);
+		fprintf (stdout, "\nNumber of mismatches allowed: %d\n\n", mismatch);
 	}
-	fprintf (stderr, "\nFastQ records with no barcode match: %d\n", num_unknown);
-	fprintf (stderr, "\nNumber of mismatches allowed: %d\n\n", mismatch);
 
 	kseq_destroy (fqrec);
 	gzclose (se);

@@ -20,6 +20,7 @@ static struct option paired_long_options[] = {
 	{"unknown-output2", required_argument, 0, 'w'},
 	{"both-barcodes", optional_argument, 0, 'c'},
 	{"max-mismatch", optional_argument, 0, 'm'},
+	{"quiet", optional_argument, 0, 'z'},
 	{GETOPT_HELP_OPTION_DECL},
 	{GETOPT_VERSION_OPTION_DECL},
 	{NULL, 0, NULL, 0}
@@ -33,10 +34,12 @@ Options:\n\
 -r, --pe-file2, Input paired-end fastq file 2 (required, must have same number of records as pe1)\n\
 -b, --barcode-file, File with barcode and two output file names per line (required)\n", PROGRAM_NAME);
 
-	fprintf (stderr, "-u, --unknown-output1, Output paired-end file 1 that contains records with no barcodes found. (required)\n\
+fprintf (stderr, "-u, --unknown-output1, Output paired-end file 1 that contains records with no barcodes found. (required)\n\
 -w, --unknown-output2, Output paired-end file 2 that contains records with no barcodes found. (required)\n\
 -c, --both-barcodes, Optional flag that indicates that both fastq files have barcodes.\n\
--m <n>, --max-mismatch <n>, Optional argument that is the maximum number of mismatches allowed in a barcode. Default 0.\n\
+-m <n>, --max-mismatch <n>, Optional argument that is the maximum number of mismatches allowed in a barcode. Default 0.\n");
+
+fprintf (stderr, "--quiet, don't print barcode matching info\n\
 --help, display this help and exit\n\
 --version, output version information and exit\n\n");
 
@@ -69,11 +72,12 @@ int paired_main (int argc, char *argv[]) {
 	int num_unknown=0;
 	int total=0;
 	int mismatch=0;
+	int quiet=0;
 
 
 	while (1) {
 		int option_index = 0;
-		optc = getopt_long (argc, argv, "dcf:r:b:u:w:m:", paired_long_options, &option_index);
+		optc = getopt_long (argc, argv, "dcf:r:b:u:w:m:z", paired_long_options, &option_index);
 
 		if (optc == -1) break;
 
@@ -111,6 +115,10 @@ int paired_main (int argc, char *argv[]) {
 
 			case 'm':
 				mismatch = atoi (optarg);
+				break;
+
+			case 'z':
+				quiet=1;
 				break;
 
 			case 'd':
@@ -286,14 +294,16 @@ int paired_main (int argc, char *argv[]) {
 	}
 
 
-	fprintf (stderr, "\nTotal FastQ records: %d (%d pairs)\n\n", total, total/2);
-	curr = head;
-	while (curr) {
-		fprintf (stderr, "FastQ records for barcode %s: %d (%d pairs)\n", curr->bc, curr->num_records, curr->num_records/2);
-		curr = curr->next;
+	if (!quiet) {
+		fprintf (stdout, "\nTotal FastQ records: %d (%d pairs)\n\n", total, total/2);
+		curr = head;
+		while (curr) {
+			fprintf (stdout, "FastQ records for barcode %s: %d (%d pairs)\n", curr->bc, curr->num_records, curr->num_records/2);
+			curr = curr->next;
+		}
+		fprintf (stdout, "\nFastQ records with no barcode match: %d (%d pairs)\n", num_unknown, num_unknown/2);
+		fprintf (stdout, "\nNumber of mismatches allowed: %d\n\n", mismatch);
 	}
-	fprintf (stderr, "\nFastQ records with no barcode match: %d (%d pairs)\n", num_unknown, num_unknown/2);
-	fprintf (stderr, "\nNumber of mismatches allowed: %d\n\n", mismatch);
 
 
 	kseq_destroy (fqrec1);
