@@ -34,7 +34,7 @@ dist:
 	tar -zcf $(ARCHIVE).tar.gz src Makefile
 
 build: barcode.o demulti_single.o demulti_paired.o sabre.o
-	$(CC) $(CFLAGS) $(LDFLAGS) $(OPT) $? -o $(PROGRAM_NAME)
+	$(CC) $(CFLAGS) $(OPT) $? -o $(PROGRAM_NAME) $(LDFLAGS)
 
 debug:
 	$(MAKE) build "CFLAGS=-Wall -pedantic -g -DDEBUG"
