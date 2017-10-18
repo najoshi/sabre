@@ -19,6 +19,7 @@ static struct option paired_long_options[] = {
 	{"unknown-output1", required_argument, 0, 'u'},
 	{"unknown-output2", required_argument, 0, 'w'},
 	{"both-barcodes", optional_argument, 0, 'c'},
+	{"strip-primers", optional_argument, 0, 's'},
 	{"max-mismatch", optional_argument, 0, 'm'},
 	{"quiet", optional_argument, 0, 'z'},
 	{GETOPT_HELP_OPTION_DECL},
@@ -37,6 +38,7 @@ Options:\n\
 fprintf (stderr, "-u, --unknown-output1, Output paired-end file 1 that contains records with no barcodes found. (required)\n\
 -w, --unknown-output2, Output paired-end file 2 that contains records with no barcodes found. (required)\n\
 -c, --both-barcodes, Optional flag that indicates that both fastq files have barcodes.\n\
+-s, --strip-primers, Optional flag that indicates if primers should be stripped off sequences.\n\
 -m <n>, --max-mismatch <n>, Optional argument that is the maximum number of mismatches allowed in a barcode. Default 0.\n");
 
 fprintf (stderr, "--quiet, don't print barcode matching info\n\
@@ -65,6 +67,7 @@ int paired_main (int argc, char *argv[]) {
 	char *unknownfn1=NULL;
 	char *unknownfn2=NULL;
 	int both_have_barcodes=0;
+	int strip_primers=0;
 	barcode_data_paired *curr, *head, *temp;
 	char barcode [MAX_BARCODE_LENGTH];
 	char baroutfn1 [MAX_FILENAME_LENGTH];
@@ -77,7 +80,7 @@ int paired_main (int argc, char *argv[]) {
 
 	while (1) {
 		int option_index = 0;
-		optc = getopt_long (argc, argv, "dcf:r:b:u:w:m:z", paired_long_options, &option_index);
+		optc = getopt_long (argc, argv, "dcf:r:b:u:w:m:z:s", paired_long_options, &option_index);
 
 		if (optc == -1) break;
 
@@ -111,6 +114,10 @@ int paired_main (int argc, char *argv[]) {
 
 			case 'c':
 				both_have_barcodes=1;
+				break;
+				
+			case 's':
+				strip_primers=1;
 				break;
 
 			case 'm':
@@ -227,30 +234,35 @@ int paired_main (int argc, char *argv[]) {
 			fprintf (curr->bcfile1, "@%s", fqrec1->name.s);
 			if (fqrec1->comment.l) fprintf (curr->bcfile1, " %s\n", fqrec1->comment.s);
 			else fprintf (curr->bcfile1, "\n");
-
-			fprintf (curr->bcfile1, "%s\n", (fqrec1->seq.s)+strlen(curr->bc));
+			if(!strip_primers) fprintf (curr->bcfile1, "%s\n", fqrec1->seq.s);
+			else fprintf (curr->bcfile1, "%s\n", (fqrec1->seq.s)+strlen(curr->bc));
 
 			fprintf (curr->bcfile1, "+%s", fqrec1->name.s);
 			if (fqrec1->comment.l) fprintf (curr->bcfile1, " %s\n", fqrec1->comment.s);
 			else fprintf (curr->bcfile1, "\n");
 
-			fprintf (curr->bcfile1, "%s\n", (fqrec1->qual.s)+strlen(curr->bc));
-
+			if(!strip_primers) fprintf (curr->bcfile1, "%s\n", fqrec1->qual.s);
+			else fprintf (curr->bcfile1, "%s\n", (fqrec1->qual.s)+strlen(curr->bc));
 
 			fprintf (curr->bcfile2, "@%s", fqrec2->name.s);
 			if (fqrec2->comment.l) fprintf (curr->bcfile2, " %s\n", fqrec2->comment.s);
 			else fprintf (curr->bcfile2, "\n");
 
 			if (!both_have_barcodes) fprintf (curr->bcfile2, "%s\n", fqrec2->seq.s);
-			else fprintf (curr->bcfile2, "%s\n", (fqrec2->seq.s)+strlen(curr->bc));
+			else {
+				if(!strip_primers) fprintf (curr->bcfile2, "%s\n", fqrec2->seq.s);
+				else fprintf (curr->bcfile2, "%s\n", (fqrec2->seq.s)+strlen(curr->bc));
+			}
 
 			fprintf (curr->bcfile2, "+%s", fqrec2->name.s);
 			if (fqrec2->comment.l) fprintf (curr->bcfile2, " %s\n", fqrec2->comment.s);
 			else fprintf (curr->bcfile2, "\n");
 
 			if (!both_have_barcodes) fprintf (curr->bcfile2, "%s\n", fqrec2->qual.s);
-			else fprintf (curr->bcfile2, "%s\n", (fqrec2->qual.s)+strlen(curr->bc));
-
+			else {
+				if(!strip_primers) fprintf (curr->bcfile2, "%s\n", fqrec2->qual.s);
+				else fprintf (curr->bcfile2, "%s\n", (fqrec2->qual.s)+strlen(curr->bc));
+			}
 			curr->num_records += 2;
 		}
 
