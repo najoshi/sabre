@@ -1,0 +1,5 @@
+# ignore C object files
+*.o
+# ignore compiled executable
+sabre
+
