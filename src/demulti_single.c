@@ -171,7 +171,7 @@ int single_main (int argc, char *argv[]) {
 
 		/* If barcode data is found, output to demultiplexed file, else output to unknown file */
 		if (curr != NULL) {
-			fprintf (curr->bcfile, "@%s", fqrec->name.s);
+			fprintf (curr->bcfile, "@%s:%s", fqrec->name.s, curr->bc);
 			if (fqrec->comment.l) fprintf (curr->bcfile, " %s\n", fqrec->comment.s);
 			else fprintf (curr->bcfile, "\n");
 

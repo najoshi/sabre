@@ -224,7 +224,7 @@ int paired_main (int argc, char *argv[]) {
 
 
 		if (curr != NULL) {
-			fprintf (curr->bcfile1, "@%s", fqrec1->name.s);
+			fprintf (curr->bcfile1, "@%s:%s", fqrec1->name.s, curr->bc);
 			if (fqrec1->comment.l) fprintf (curr->bcfile1, " %s\n", fqrec1->comment.s);
 			else fprintf (curr->bcfile1, "\n");
 
@@ -237,7 +237,7 @@ int paired_main (int argc, char *argv[]) {
 			fprintf (curr->bcfile1, "%s\n", (fqrec1->qual.s)+strlen(curr->bc));
 
 
-			fprintf (curr->bcfile2, "@%s", fqrec2->name.s);
+			fprintf (curr->bcfile2, "@%s:%s", fqrec2->name.s, curr->bc);
 			if (fqrec2->comment.l) fprintf (curr->bcfile2, " %s\n", fqrec2->comment.s);
 			else fprintf (curr->bcfile2, "\n");
 
