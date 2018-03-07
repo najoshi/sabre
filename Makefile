@@ -1,7 +1,7 @@
 PROGRAM_NAME = sabre
 VERSION = 1.00
 CC = gcc
-CFLAGS = -Wall -pedantic -DVERSION=$(VERSION)
+CFLAGS = -Wall -std=c99 -O2 -pedantic -DVERSION=$(VERSION)
 DEBUG = -g
 OPT = -O3
 ARCHIVE = $(PROGRAM_NAME)_$(VERSION)
@@ -21,8 +21,12 @@ demulti_single.o: $(SDIR)/demulti_single.c $(SDIR)/sabre.h $(SDIR)/kseq.h
 demulti_paired.o: $(SDIR)/demulti_paired.c $(SDIR)/sabre.h $(SDIR)/kseq.h
 	$(CC) $(CFLAGS) $(OPT) -c $(SDIR)/$*.c
 
+utils.o: $(SDIR)/utils.c $(SDIR)/sabre.h
+	$(CC) $(CFLAGS) $(OPT) -c $(SDIR)/$*.c
+
 sabre.o: $(SDIR)/sabre.c $(SDIR)/sabre.h
 	$(CC) $(CFLAGS) $(OPT) -c $(SDIR)/$*.c
+
 
 clean:
 	rm -rf *.o $(SDIR)/*.gch ./sabre
@@ -33,7 +37,7 @@ distclean: clean
 dist:
 	tar -zcf $(ARCHIVE).tar.gz src Makefile
 
-build: barcode.o demulti_single.o demulti_paired.o sabre.o
+build: barcode.o demulti_single.o demulti_paired.o sabre.o utils.o
 	$(CC) $(CFLAGS) $(OPT) $? -o $(PROGRAM_NAME) $(LDFLAGS)
 
 debug:

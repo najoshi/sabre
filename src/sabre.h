@@ -64,4 +64,6 @@ int single_main (int argc, char *argv[]);
 int paired_main (int argc, char *argv[]);
 int strncmp_with_mismatch (const char *s1, const char *s2, register size_t n, register size_t mismatch);
 
+const char * _mkdir (const char *dir);
+
 #endif /*SABRE_H*/

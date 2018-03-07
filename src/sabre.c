@@ -10,14 +10,22 @@
 
 void main_usage (int status) {
 
-	fprintf (stdout, "\nUsage: %s <command> [options]\n\
-\n\
-Command:\n\
-pe\tpaired-end barcode de-multiplexing\n\
-se\tsingle-end barcode de-multiplexing\n\
-\n\
---help, display this help and exit\n\
---version, output version information and exit\n\n", PROGRAM_NAME);
+	fprintf (stdout, "\n\
+                    \n  Usage: %s <command> [options]\
+                    \n\
+                    \n  Command:\
+                    \n\
+                    \n    se\tsingle-end barcode de-multiplexing\
+                    \n    pe\tpaired-end barcode de-multiplexing\
+                    \n\
+                    \n    --help, display this help and exit\
+                    \n    --version, output version information and exit\
+                    \n\
+                    \n  Info: Sabre is a heavy cavalry sword with a curved blade and a single cutting edge\
+                    \n        Not sure though if the meaning was intended by original author...\
+                    \n\
+                    \n",
+                    PROGRAM_NAME);
 
 	exit (status);
 }

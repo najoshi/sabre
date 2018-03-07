@@ -4,6 +4,7 @@
 #include <zlib.h>
 #include <stdio.h>
 #include <getopt.h>
+#include <string.h>
 #include <limits.h>
 #include <zlib.h>
 #include "sabre.h"
@@ -11,16 +12,19 @@
 
 KSEQ_INIT(gzFile, gzread)
 
-
+//more about getopts http://www.informit.com/articles/article.aspx?p=175771&seqNum=3
 static struct option paired_long_options[] = {
-	{"pe-file1", required_argument, 0, 'f'},
-	{"pe-file2", required_argument, 0, 'r'},
-	{"barcode-file", required_argument, 0, 'b'},
-	{"unknown-output1", required_argument, 0, 'u'},
-	{"unknown-output2", required_argument, 0, 'w'},
-	{"both-barcodes", optional_argument, 0, 'c'},
-	{"max-mismatch", optional_argument, 0, 'm'},
-	{"quiet", optional_argument, 0, 'z'},
+	{"pe-file1", required_argument, NULL, 'f'},
+	{"pe-file2", required_argument, NULL, 'r'},
+	{"barcode-file", required_argument, NULL, 'b'},
+	{"unknown-output1", required_argument, NULL, 'u'},
+	{"unknown-output2", required_argument, NULL, 'w'},
+	{"both-barcodes", optional_argument, NULL, 'c'},
+	{"max-mismatch", required_argument, 0, 'm'},
+	{"min-umi-len", required_argument, 0, 'l'},
+	{"stats", required_argument, NULL, 's'},
+	{"no-comment", no_argument, 0, 'n'},
+	//{"quiet", no_argument, 0, 'z'},
 	{GETOPT_HELP_OPTION_DECL},
 	{GETOPT_VERSION_OPTION_DECL},
 	{NULL, 0, NULL, 0}
@@ -37,7 +41,10 @@ Options:\n\
 fprintf (stderr, "-u, --unknown-output1, Output paired-end file 1 that contains records with no barcodes found. (required)\n\
 -w, --unknown-output2, Output paired-end file 2 that contains records with no barcodes found. (required)\n\
 -c, --both-barcodes, Optional flag that indicates that both fastq files have barcodes.\n\
--m <n>, --max-mismatch <n>, Optional argument that is the maximum number of mismatches allowed in a barcode. Default 0.\n");
+-m <n>, --max-mismatch <n>, Optional argument that is the maximum number of mismatches allowed in a barcode. Default 0.\n\
+-l <n>, --min-umi-len <n>, Optional argument that is the minimum UMI length to keep. Default [0].\n\
+-n, --no-comment, Optional argument to drop extra comments from FASTQ header. Default [NULL].\n\
+-s <FILENAME>, --stats <FILENAME>, Optional argument to write logs into a file instead of STDOUT. Default [STDOUT].\n");
 
 fprintf (stderr, "--quiet, don't print barcode matching info\n\
 --help, display this help and exit\n\
@@ -56,6 +63,7 @@ int paired_main (int argc, char *argv[]) {
 	FILE* barfile = NULL;
 	FILE* unknownfile1=NULL;
 	FILE* unknownfile2=NULL;
+	FILE* log_file=NULL;
 	int debug=0;
 	int optc;
 	extern char *optarg;
@@ -72,12 +80,16 @@ int paired_main (int argc, char *argv[]) {
 	int num_unknown=0;
 	int total=0;
 	int mismatch=0;
-	int quiet=0;
+	//int quiet=0;
+
+	int min_umi_len=0;
+	char *log_fn=NULL;
+	int no_comment=-1;
 
 
 	while (1) {
 		int option_index = 0;
-		optc = getopt_long (argc, argv, "dcf:r:b:u:w:m:z", paired_long_options, &option_index);
+		optc = getopt_long (argc, argv, "dcf:r:b:u:w:m:s:l:n:z", paired_long_options, &option_index);
 
 		if (optc == -1) break;
 
@@ -117,8 +129,21 @@ int paired_main (int argc, char *argv[]) {
 				mismatch = atoi (optarg);
 				break;
 
+			case 's':
+				log_fn = (char*) malloc (strlen (optarg) + 1);
+				strcpy (log_fn, optarg);
+				break;
+
+			case 'l':
+				min_umi_len = atoi (optarg);
+				break;
+
+			case 'n':
+				no_comment = 1;
+				break;
+
 			case 'z':
-				quiet=1;
+				//quiet=1;
 				break;
 
 			case 'd':
@@ -137,7 +162,6 @@ int paired_main (int argc, char *argv[]) {
 				break;
 		}
 	}
-
 
 	if (!infn1 || !infn2 || !unknownfn1 || !unknownfn2 || !barfn) {
 		paired_usage (EXIT_FAILURE);
@@ -182,6 +206,28 @@ int paired_main (int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
+        fprintf(stderr, "\n\
+                       \n  Running: %s\
+                       \n  Command line args:\
+                       \n      --pe-file1 %s\
+                       \n      --pe-file2 %s\
+                       \n      --barcode-file %s\
+                       \n      --unknown-output1 %s\
+                       \n      --unknown-output2 %s\
+                       \n      --both-barcodes %d\
+                       \n      --max-mismatch %d\
+                       \n      --min-umi-len %d\
+                       \n      --stats %s\
+                       \n      --no-comment %d\
+                       \n\
+                       \n  In Progess...\
+                       \n", PROGRAM_NAME,\
+                            infn1, infn2,\
+                            barfn,\
+                            unknownfn1, unknownfn2,\
+                            both_have_barcodes,\
+                            mismatch, min_umi_len, log_fn, no_comment);
+
 
 	/* Creating linked list of barcode data */
 	head = NULL;
@@ -190,8 +236,8 @@ int paired_main (int argc, char *argv[]) {
 		curr->bc = (char*) malloc (strlen(barcode) + 1);
 		strcpy (curr->bc, barcode);
 
-		curr->bcfile1 = fopen (baroutfn1, "w");
-		curr->bcfile2 = fopen (baroutfn2, "w");
+		curr->bcfile1 = fopen (_mkdir(baroutfn1), "w");
+		curr->bcfile2 = fopen (_mkdir(baroutfn2), "w");
 		curr->num_records = 0;
 
 		curr->next = head;
@@ -224,34 +270,42 @@ int paired_main (int argc, char *argv[]) {
 
 
 		if (curr != NULL) {
-			fprintf (curr->bcfile1, "@%s:%s", fqrec1->name.s, curr->bc);
-			if (fqrec1->comment.l) fprintf (curr->bcfile1, " %s\n", fqrec1->comment.s);
-			else fprintf (curr->bcfile1, "\n");
+			// if UMI is shorter then 10, discard the reads
+			if(strlen((fqrec1->seq.s)+strlen(curr->bc)) >= min_umi_len) {
+			    //@READNAME:BACRCODE:UMI
+			    fprintf (curr->bcfile1, "@%s:%s:%s", fqrec1->name.s, curr->bc, (fqrec1->seq.s)+strlen(curr->bc));
+			    if (fqrec1->comment.l && no_comment == -1) fprintf (curr->bcfile1, " %s\n", fqrec1->comment.s);
+			    else fprintf (curr->bcfile1, "\n");
 
-			fprintf (curr->bcfile1, "%s\n", (fqrec1->seq.s)+strlen(curr->bc));
+			    //fprintf (curr->bcfile1, "%s\n", (fqrec1->seq.s)+strlen(curr->bc));
+			    //This tmp hack knowning that data is single end, and R2 is simply a string of BARCODE+UMI
+			    fprintf (curr->bcfile1, "N\n");
 
-			fprintf (curr->bcfile1, "+%s", fqrec1->name.s);
-			if (fqrec1->comment.l) fprintf (curr->bcfile1, " %s\n", fqrec1->comment.s);
-			else fprintf (curr->bcfile1, "\n");
+			    fprintf (curr->bcfile1, "+%s", fqrec1->name.s);
+			    if (fqrec1->comment.l) fprintf (curr->bcfile1, " %s\n", fqrec1->comment.s);
+			    else fprintf (curr->bcfile1, "\n");
 
-			fprintf (curr->bcfile1, "%s\n", (fqrec1->qual.s)+strlen(curr->bc));
+			    fprintf (curr->bcfile1, "%s\n", (fqrec1->qual.s)+strlen(curr->bc));
 
 
-			fprintf (curr->bcfile2, "@%s:%s", fqrec2->name.s, curr->bc);
-			if (fqrec2->comment.l) fprintf (curr->bcfile2, " %s\n", fqrec2->comment.s);
-			else fprintf (curr->bcfile2, "\n");
+			    //fprintf (curr->bcfile2, "@%s:%s", fqrec2->name.s, curr->bc);
+			    //@READNAME:BACRCODE:UMI
+			    fprintf (curr->bcfile2, "@%s:%s:%s", fqrec2->name.s, curr->bc, (fqrec1->seq.s)+strlen(curr->bc));
+			    if (fqrec2->comment.l && no_comment == -1) fprintf (curr->bcfile2, " %s\n", fqrec2->comment.s);
+			    else fprintf (curr->bcfile2, "\n");
 
-			if (!both_have_barcodes) fprintf (curr->bcfile2, "%s\n", fqrec2->seq.s);
-			else fprintf (curr->bcfile2, "%s\n", (fqrec2->seq.s)+strlen(curr->bc));
+			    if (!both_have_barcodes) fprintf (curr->bcfile2, "%s\n", fqrec2->seq.s);
+			    else fprintf (curr->bcfile2, "%s\n", (fqrec2->seq.s)+strlen(curr->bc));
 
-			fprintf (curr->bcfile2, "+%s", fqrec2->name.s);
-			if (fqrec2->comment.l) fprintf (curr->bcfile2, " %s\n", fqrec2->comment.s);
-			else fprintf (curr->bcfile2, "\n");
+			    fprintf (curr->bcfile2, "+%s", fqrec2->name.s);
+			    if (fqrec2->comment.l) fprintf (curr->bcfile2, " %s\n", fqrec2->comment.s);
+			    else fprintf (curr->bcfile2, "\n");
 
-			if (!both_have_barcodes) fprintf (curr->bcfile2, "%s\n", fqrec2->qual.s);
-			else fprintf (curr->bcfile2, "%s\n", (fqrec2->qual.s)+strlen(curr->bc));
+			    if (!both_have_barcodes) fprintf (curr->bcfile2, "%s\n", fqrec2->qual.s);
+			    else fprintf (curr->bcfile2, "%s\n", (fqrec2->qual.s)+strlen(curr->bc));
 
-			curr->num_records += 2;
+			    curr->num_records += 2;
+			}
 		}
 
 		else {
@@ -294,17 +348,25 @@ int paired_main (int argc, char *argv[]) {
 	}
 
 
-	if (!quiet) {
-		fprintf (stdout, "\nTotal FastQ records: %d (%d pairs)\n\n", total, total/2);
-		curr = head;
-		while (curr) {
-			fprintf (stdout, "FastQ records for barcode %s: %d (%d pairs)\n", curr->bc, curr->num_records, curr->num_records/2);
-			curr = curr->next;
-		}
-		fprintf (stdout, "\nFastQ records with no barcode match: %d (%d pairs)\n", num_unknown, num_unknown/2);
-		fprintf (stdout, "\nNumber of mismatches allowed: %d\n\n", mismatch);
-	}
+        //if (!quiet) {
+        //if (!log_fn) { is this better?
+        if (log_fn == NULL) {
+            log_file = stdout;
+        }
+        else {
+            log_file = fopen(log_fn, "w");
+        }
+        
+        fprintf (log_file, "\nTotal FastQ records: %d (%d pairs)\n\n", total, total/2);
+        curr = head;
+        while (curr) {
+        	fprintf (log_file, "FastQ records for barcode %s: %d (%d pairs)\n", curr->bc, curr->num_records, curr->num_records/2);
+        	curr = curr->next;
+        }
+        fprintf (log_file, "\nFastQ records with no barcode match: %d (%d pairs)\n", num_unknown, num_unknown/2);
+        fprintf (log_file, "\nNumber of mismatches allowed: %d\n\n", mismatch);
 
+        fprintf (stderr, "\n  All done :)!");
 
 	kseq_destroy (fqrec1);
 	kseq_destroy (fqrec2);
@@ -313,12 +375,14 @@ int paired_main (int argc, char *argv[]) {
 	fclose (unknownfile1);
 	fclose (unknownfile2);
 	fclose (barfile);
+	fclose (log_file);
 
 	free (infn1);
 	free (infn2);
 	free (barfn);
 	free (unknownfn1);
 	free (unknownfn2);
+	free (log_fn);
 
 	curr = head;
 	while (curr) {
