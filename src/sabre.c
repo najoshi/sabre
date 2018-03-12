@@ -18,8 +18,8 @@ void main_usage (int status) {
                     \n    se\tsingle-end barcode de-multiplexing\
                     \n    pe\tpaired-end barcode de-multiplexing\
                     \n\
-                    \n    --help, display this help and exit\
-                    \n    --version, output version information and exit\
+                    \n    --help\tto get more help\
+                    \n    --version\tprint current version to stdout\
                     \n\
                     \n  Info: Sabre is a heavy cavalry sword with a curved blade and a single cutting edge\
                     \n        Not sure though if the meaning was intended by original author...\

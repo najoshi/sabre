@@ -32,25 +32,32 @@ static struct option paired_long_options[] = {
 
 void paired_usage (int status) {
 
-	fprintf (stderr, "\nUsage: %s pe -f <paired-end fastq file 1> -r <paired-end fastq file 2> -b <barcode file> -u <unknown barcode output file 1> -w <unknown barcode output file 2>\n\n\
-Options:\n\
--f, --pe-file1, Input paired-end fastq file 1 (required, must have same number of records as pe2)\n\
--r, --pe-file2, Input paired-end fastq file 2 (required, must have same number of records as pe1)\n\
--b, --barcode-file, File with barcode and two output file names per line (required)\n", PROGRAM_NAME);
+    fprintf (stderr, "\n  Usage: %s pe [OPTIONS] -f <fastq_R1> -r <fastq_R2> -b <barcode_file> -u <unassigned_R1> -w <unassigned_R2>\
+                      \n\
+                      \n\
+                      \n  Options:\
+                      \n\
+                      \n    Required:\
+                      \n\
+                      \n        -f, --pe-file1 FILE           Input FASTQ R1 read\
+                      \n        -r, --pe-file2 FILE           Input FASTQ R2 reads\
+                      \n        -b, --barcode-file FILE       Barcodes files, one barcode per line, e.g B\\tR1\\tR2\
+                      \n        -u, --unknown-output1 FILE    Output unassigned R1 reads\
+                      \n        -w, --unknown-output2 FILE    Output unassigned R2 reads\
+                      \n\
+                      \n    Other:\
+                      \n\
+                      \n        -c, --both-barcodes INT       Indicates that both FASTQ files have barcodes [0]\
+                      \n        -m, --max-mismatch INT        Maximum number of mismatches allowed in a barcode [0]\
+                      \n        -l, --min-umi-len INT         Minimum UMI length to keep [0]\
+                      \n        -n, --no-comment              Drop extra comments from FASTQ header [NULL]\
+                      \n        -s, --stats FILE              Write stats to file instead of STDOUT [STDOUT]\
+                      \n\
+                      \n",
+            PROGRAM_NAME);
 
-fprintf (stderr, "-u, --unknown-output1, Output paired-end file 1 that contains records with no barcodes found. (required)\n\
--w, --unknown-output2, Output paired-end file 2 that contains records with no barcodes found. (required)\n\
--c, --both-barcodes, Optional flag that indicates that both fastq files have barcodes.\n\
--m <n>, --max-mismatch <n>, Optional argument that is the maximum number of mismatches allowed in a barcode. Default 0.\n\
--l <n>, --min-umi-len <n>, Optional argument that is the minimum UMI length to keep. Default [0].\n\
--n, --no-comment, Optional argument to drop extra comments from FASTQ header. Default [NULL].\n\
--s <FILENAME>, --stats <FILENAME>, Optional argument to write logs into a file instead of STDOUT. Default [STDOUT].\n");
 
-fprintf (stderr, "--quiet, don't print barcode matching info\n\
---help, display this help and exit\n\
---version, output version information and exit\n\n");
-
-	exit (status);
+    exit (status);
 }
 
 int paired_main (int argc, char *argv[]) {
