@@ -2,4 +2,6 @@
 *.o
 # ignore compiled executable
 sabre
+# ignore vim swap files
+*.swp
 
