@@ -1,3 +1,5 @@
+> This is a fork of the [original repo](https://github.com/najoshi/sabre). I might be taking this into slightly different direction
+
 # sabre - A barcode demultiplexing and trimming tool for FastQ files
 
 ## About
