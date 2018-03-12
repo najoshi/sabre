@@ -22,6 +22,7 @@ KSEQ_INIT(gzFile, gzread)
         {"both-barcodes", optional_argument, NULL, 'c'},
         {"max-mismatch", required_argument, 0, 'm'},
         {"min-umi-len", required_argument, 0, 'l'},
+        {"max-5prime-crop", required_argument, 0, 'a'},
         {"stats", required_argument, NULL, 's'},
         {"no-comment", no_argument, 0, 'n'},
         //{"quiet", no_argument, 0, 'z'},
@@ -50,6 +51,7 @@ void paired_usage (int status) {
             \n        -c, --both-barcodes INT       Indicates that both FASTQ files have barcodes [0]\
             \n        -m, --max-mismatch INT        Maximum number of mismatches allowed in a barcode [0]\
             \n        -l, --min-umi-len INT         Minimum UMI length to keep [0]\
+            \n        -a, --max-5prime-crop INT     Maximum number of possible bases cropped from 5prime [0]\
             \n        -n, --no-comment              Drop extra comments from FASTQ header [NULL]\
             \n        -s, --stats FILE              Write stats to file instead of STDOUT [STDOUT]\
             \n\
@@ -77,8 +79,8 @@ int paired_main (int argc, char *argv[]) {
     char *infn1=NULL;
     char *infn2=NULL;
     char *barfn=NULL;
-    char *unknownfn1=NULL;
-    char *unknownfn2=NULL;
+    char *unknownfn1=strdup("unassigned_R1.fastq.gz");
+    char *unknownfn2=strdup("unassigned_R2.fastq.gz");
     int both_have_barcodes=0;
     barcode_data_paired *curr, *head, *temp;
     char barcode [MAX_BARCODE_LENGTH];
@@ -90,13 +92,15 @@ int paired_main (int argc, char *argv[]) {
     //int quiet=0;
 
     int min_umi_len=0;
+    int max_5prime_crop=0;
     char *log_fn=NULL;
     int no_comment=-1;
 
 
     while (1) {
         int option_index = 0;
-        optc = getopt_long (argc, argv, "dcf:r:b:u:w:m:s:l:n:z", paired_long_options, &option_index);
+        //colon after a flag means should have arguments and no colon means just a flag i.e bool, no args after it
+        optc = getopt_long (argc, argv, "dcnf:r:b:u:w:m:s:l:z:a:", paired_long_options, &option_index);
 
         if (optc == -1) break;
 
@@ -119,11 +123,17 @@ int paired_main (int argc, char *argv[]) {
             break;
 
             case 'u':
+            if(unknownfn1) {
+                free(unknownfn1);
+            }
             unknownfn1 = (char*) malloc (strlen (optarg) + 1);
             strcpy (unknownfn1, optarg);
             break;
 
             case 'w':
+            if(unknownfn2) {
+                free(unknownfn2);
+            }
             unknownfn2 = (char*) malloc (strlen (optarg) + 1);
             strcpy (unknownfn2, optarg);
             break;
@@ -143,6 +153,10 @@ int paired_main (int argc, char *argv[]) {
 
             case 'l':
             min_umi_len = atoi (optarg);
+            break;
+
+            case 'a':
+            max_5prime_crop = atoi (optarg);
             break;
 
             case 'n':
@@ -224,6 +238,7 @@ int paired_main (int argc, char *argv[]) {
             \n      --both-barcodes %d\
             \n      --max-mismatch %d\
             \n      --min-umi-len %d\
+            \n      --max-5prime-crop %d\
             \n      --stats %s\
             \n      --no-comment %d\
             \n\
@@ -233,7 +248,7 @@ int paired_main (int argc, char *argv[]) {
             barfn,\
             unknownfn1, unknownfn2,\
             both_have_barcodes,\
-            mismatch, min_umi_len, log_fn, no_comment);
+            mismatch, min_umi_len, max_5prime_crop, log_fn, no_comment);
 
 
     /* Creating linked list of barcode data */
@@ -268,10 +283,9 @@ int paired_main (int argc, char *argv[]) {
         /* If it does then put read in that barcode's file, otherwise put in unknown file */
         curr = head;
         while (curr) {
-            if (strncmp_with_mismatch (curr->bc, fqrec1->seq.s, strlen (curr->bc), mismatch) == 0) {
+            if (strncmp_with_mismatch (curr->bc, fqrec1->seq.s, strlen (curr->bc), mismatch, max_5prime_crop) == 0) {
                 break;
             }
-
             curr = curr->next;
         }
 

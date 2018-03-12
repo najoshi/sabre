@@ -60,6 +60,8 @@ int single_main (int argc, char *argv[]) {
 	int mismatch=0;
 	int quiet=0;
 
+	int max_5prime_crop=0;
+
 	while (1) {
 		int option_index = 0;
 		optc = getopt_long (argc, argv, "df:b:u:m:z", single_long_options, &option_index);
@@ -161,10 +163,9 @@ int single_main (int argc, char *argv[]) {
 		/* with the sequence until a match is found or no match is found for any */
 		curr = head;
 		while (curr) {
-			if (strncmp_with_mismatch (curr->bc, fqrec->seq.s, strlen (curr->bc), mismatch) == 0) {
+			if (strncmp_with_mismatch (curr->bc, fqrec->seq.s, strlen (curr->bc), mismatch, max_5prime_crop) == 0) {
 				break;
 			}
-
 			curr = curr->next;
 		}
 
