@@ -12,9 +12,6 @@ SDIR = src
 
 default: build
 
-barcode.o: $(SDIR)/barcode.c
-	$(CC) $(CFLAGS) $(OPT) -c $(SDIR)/$*.c
-
 demulti_single.o: $(SDIR)/demulti_single.c $(SDIR)/sabre.h $(SDIR)/kseq.h
 	$(CC) $(CFLAGS) $(OPT) -c $(SDIR)/$*.c
 
@@ -27,7 +24,6 @@ utils.o: $(SDIR)/utils.c $(SDIR)/sabre.h
 sabre.o: $(SDIR)/sabre.c $(SDIR)/sabre.h
 	$(CC) $(CFLAGS) $(OPT) -c $(SDIR)/$*.c
 
-
 clean:
 	rm -rf *.o $(SDIR)/*.gch ./sabre
 
@@ -37,7 +33,7 @@ distclean: clean
 dist:
 	tar -zcf $(ARCHIVE).tar.gz src Makefile
 
-build: barcode.o demulti_single.o demulti_paired.o sabre.o utils.o
+build: demulti_single.o demulti_paired.o sabre.o utils.o
 	$(CC) $(CFLAGS) $(OPT) $? -o $(PROGRAM_NAME) $(LDFLAGS)
 
 debug:
