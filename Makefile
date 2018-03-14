@@ -1,7 +1,7 @@
 PROGRAM_NAME = sabre
 VERSION = 1.00
 CC = gcc
-CFLAGS = -Wall -std=c99 -O2 -pedantic -DVERSION=$(VERSION)
+CFLAGS = -Wall -O2 -pedantic -DVERSION=$(VERSION)
 DEBUG = -g
 OPT = -O3
 ARCHIVE = $(PROGRAM_NAME)_$(VERSION)
