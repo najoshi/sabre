@@ -58,7 +58,6 @@ void paired_usage (int status) {
             \n",
             PROGRAM_NAME);
 
-
     exit (status);
 }
 
@@ -79,8 +78,8 @@ int paired_main (int argc, char *argv[]) {
     char *infn1=NULL;
     char *infn2=NULL;
     char *barfn=NULL;
-    char *unknownfn1=strdup("unassigned_R1.fastq.gz");
-    char *unknownfn2=strdup("unassigned_R2.fastq.gz");
+    char *unknownfn1=strdup("unassigned_R1.fastq");
+    char *unknownfn2=strdup("unassigned_R2.fastq");
     int both_have_barcodes=0;
     barcode_data_paired *curr, *head, *temp;
     char barcode [MAX_BARCODE_LENGTH];
@@ -95,7 +94,6 @@ int paired_main (int argc, char *argv[]) {
     int max_5prime_crop=0;
     char *log_fn=NULL;
     int no_comment=-1;
-
 
     while (1) {
         int option_index = 0;
@@ -250,8 +248,10 @@ int paired_main (int argc, char *argv[]) {
             both_have_barcodes,\
             mismatch, min_umi_len, max_5prime_crop, log_fn, no_comment);
 
-
     /* Creating linked list of barcode data */
+    // https://www.hackerearth.com/practice/data-structures/linked-list/singly-linked-list/tutorial/
+    // where each node is represents one barcode from the barcode file
+    // number of nodes should equal to number of barcodes (lines) in the file
     head = NULL;
     while (fscanf (barfile, "%s%s%s", barcode, baroutfn1, baroutfn2) != EOF) {
         curr = (barcode_data_paired*) malloc (sizeof (barcode_data_paired));
@@ -266,10 +266,9 @@ int paired_main (int argc, char *argv[]) {
         head = curr;
     }
 
-
     fqrec1 = kseq_init (pe1);
     fqrec2 = kseq_init (pe2);
-
+    // loop over all the reads and for every read loop over all barcodes and look for a match
     while ((l1 = kseq_read (fqrec1)) >= 0) {
 
         l2 = kseq_read (fqrec2);
@@ -278,17 +277,16 @@ int paired_main (int argc, char *argv[]) {
             break;
         }
 
-
         /* Go through all barcode data and check if any match to beginning of read */
         /* If it does then put read in that barcode's file, otherwise put in unknown file */
         curr = head;
         while (curr) {
-            if (strncmp_with_mismatch (curr->bc, fqrec1->seq.s, strlen (curr->bc), mismatch, max_5prime_crop) == 0) {
+            //zero means no mismatches found, that is barcode was found for that reads, therefore break and write it out
+            if (strncmp_with_mismatch (curr->bc, fqrec1->seq.s, mismatch, max_5prime_crop) == 0) {
                 break;
             }
             curr = curr->next;
         }
-
 
         if (curr != NULL) {
             // if UMI is shorter then 10, discard the reads
@@ -387,7 +385,7 @@ int paired_main (int argc, char *argv[]) {
     fprintf (log_file, "\nFastQ records with no barcode match: %d (%d pairs)\n", num_unknown, num_unknown/2);
     fprintf (log_file, "\nNumber of mismatches allowed: %d\n\n", mismatch);
 
-    fprintf (stderr, "\n  All done :)!");
+    fprintf (stderr, "\n  All done :)! \n");
 
     kseq_destroy (fqrec1);
     kseq_destroy (fqrec2);

@@ -8,6 +8,7 @@
 #include "sabre.h"
 #include <assert.h>
 #include <ctype.h>
+#include <string.h>
 
 // https://stackoverflow.com/questions/2336242/recursive-mkdir-system-call-on-unix/11425692
 // https://stackoverflow.com/questions/7430248/creating-a-new-directory-in-c
@@ -26,8 +27,7 @@ const char * _mkdir(const char *file_path) {
     //char tmp[PATH_MAX]; // can't get this to work..
     char tmp[256];
     char *p = NULL;
-    char *dirc;
-    dirc = strdup(file_path);
+    char *dirc = strdup(file_path);
     size_t len;
 
     const char *dir = dirname(dirc);
@@ -55,18 +55,28 @@ const char * _mkdir(const char *file_path) {
 //NOTE retuns zero on success
 //strcmp can be used for sorting, returns pos, zero, neg
 //BUT this new implementation can't be used as such just FYI 
-int strncmp_with_mismatch (const char *bc, const char *read, register size_t bc_len, register size_t mismatch, int max_5prime_crop) {
+int strncmp_with_mismatch (const char *orig_bc, const char *orig_read, size_t mismatch, int max_5prime_crop) {
 
-    register char u1, u2;
-    int cnt=0;
-    int n_crop=0;
+    int orig_read_len = strlen(orig_read);
+    int orig_bc_len = strlen(orig_bc);
+    int n_crop = 0;
 
-    char *orig_bc = strdup(bc);
-    char *orig_read = strdup(read);
+    if(orig_bc_len > orig_read_len) {
+        fprintf (stderr, "Length of the barcode %d is greater than length of the reads %d.", orig_bc_len, orig_read_len);
+        return 1;
+    }
 
     while(n_crop <= max_5prime_crop) {
-        bc = orig_bc;
-        read = orig_read+n_crop;
+
+        if(n_crop > orig_read_len) {
+            return 1;
+        }
+
+        int cnt = 0;
+        char u1, u2;
+        const char *bc = orig_bc;
+        const char *read = orig_read+n_crop;
+        int bc_len = orig_bc_len;
     
         while (bc_len-- > 0) {
             u1 = *bc++;
@@ -75,15 +85,21 @@ int strncmp_with_mismatch (const char *bc, const char *read, register size_t bc_
             if (u1 != u2) {
                 cnt++;
                 if (cnt > mismatch) {
-                    //return u1 - u2;
                     break;
                 }
             }
+
             if (u1 == '\0' || u2 == '\0') {
                 return 0;
             }
         }
+
+        if(cnt <= mismatch) {
+            return 0;
+        }
+
         n_crop++;
     }
-    return 0;
+    //this is in the case of error
+    return 1;
 }

@@ -6,6 +6,7 @@
 #include <getopt.h>
 #include <limits.h>
 #include <zlib.h>
+#include <string.h>
 #include "sabre.h"
 #include "kseq.h"
 
@@ -163,7 +164,7 @@ int single_main (int argc, char *argv[]) {
 		/* with the sequence until a match is found or no match is found for any */
 		curr = head;
 		while (curr) {
-			if (strncmp_with_mismatch (curr->bc, fqrec->seq.s, strlen (curr->bc), mismatch, max_5prime_crop) == 0) {
+			if (strncmp_with_mismatch (curr->bc, fqrec->seq.s, mismatch, max_5prime_crop) == 0) {
 				break;
 			}
 			curr = curr->next;
