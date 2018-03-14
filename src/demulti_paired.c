@@ -7,6 +7,7 @@
 #include <string.h>
 #include <limits.h>
 #include <zlib.h>
+#include <time.h>
 #include "sabre.h"
 #include "kseq.h"
 
@@ -62,6 +63,10 @@ void paired_usage (int status) {
 }
 
 int paired_main (int argc, char *argv[]) {
+    
+    //clock_t begin = clock();
+    time_t start, end;
+    start = time(NULL);
 
     gzFile pe1=NULL;
     gzFile pe2=NULL;
@@ -376,16 +381,30 @@ int paired_main (int argc, char *argv[]) {
         log_file = fopen(log_fn, "w");
     }
 
-    fprintf (log_file, "\nTotal FastQ records: %d (%d pairs)\n\n", total, total/2);
+
+    fprintf (log_file, "Barcode\tN_records\tN_pairs\tP_pairs\n");
     curr = head;
+    int total_pairs = total/2; 
+
     while (curr) {
-        fprintf (log_file, "FastQ records for barcode %s: %d (%d pairs)\n", curr->bc, curr->num_records, curr->num_records/2);
+
+        int n_pairs = curr->num_records/2;
+        float percent_pairs = (float) n_pairs/total_pairs;
+
+        fprintf (log_file,"%s\t%d\t%d\t%.2f\n", curr->bc, curr->num_records, n_pairs, percent_pairs);
         curr = curr->next;
     }
-    fprintf (log_file, "\nFastQ records with no barcode match: %d (%d pairs)\n", num_unknown, num_unknown/2);
-    fprintf (log_file, "\nNumber of mismatches allowed: %d\n\n", mismatch);
 
-    fprintf (stderr, "\n  All done :)! \n");
+    int unknown_pairs = num_unknown/2;
+    float percent_unknown = (float) unknown_pairs/total_pairs;
+    float tot_chk = (float) total_pairs/total_pairs;
+
+    fprintf (log_file, "unassigned\t%d\t%d\t%.2f\n", num_unknown, unknown_pairs, percent_unknown);
+    fprintf (log_file, "total\t%d\t%d\t%.2f\n", total, total_pairs, tot_chk);
+
+    end = time(NULL);
+    fprintf(stderr, "\n All done :) \
+	             \n It took %.2f minutes\n", difftime(end, start)/60);
 
     kseq_destroy (fqrec1);
     kseq_destroy (fqrec2);
