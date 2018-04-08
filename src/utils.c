@@ -62,7 +62,12 @@ int strncmp_with_mismatch (const char *orig_bc, const char *orig_read, size_t mi
     int n_crop = 0;
 
     if(orig_bc_len > orig_read_len) {
-        fprintf (stderr, "Length of the barcode %d is greater than length of the reads %d.", orig_bc_len, orig_read_len);
+        fprintf (stderr,
+                 "The length of the barcode %s is greater than the length of the reads %s, %d and %d\n",
+                 orig_bc,
+                 orig_read,
+                 orig_bc_len,
+                 orig_read_len);
         return 1;
     }
 
