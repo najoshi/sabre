@@ -26,7 +26,7 @@ sabre.o: sabre.h
 
 build: $(OBJ)
 	$(CC) $(CFLAGS) $(OBJ) -o $(EXE) $(LDFLAGS) 
-	ln -sf $(DSRC)/$(EXE) ..
+	#ln -sf $(DSRC)/$(EXE) ..
 
 gprof: 
 	$(CC) $(CFLAGS) $(GPROF) $(SRC) -o $(EXE).gprof $(LDFLAGS) 

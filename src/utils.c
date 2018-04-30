@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <string.h>
+#include "utils.h"
 
 // https://stackoverflow.com/questions/2336242/recursive-mkdir-system-call-on-unix/11425692
 // https://stackoverflow.com/questions/7430248/creating-a-new-directory-in-c
@@ -62,12 +63,7 @@ int strncmp_with_mismatch (const char *orig_bc, const char *orig_read, size_t mi
     int n_crop = 0;
 
     if(orig_bc_len > orig_read_len) {
-        fprintf (stderr,
-                 "The length of the barcode %s is greater than the length of the reads %s, %d and %d\n",
-                 orig_bc,
-                 orig_read,
-                 orig_bc_len,
-                 orig_read_len);
+        fprintf (stderr, "Length of the barcode %d is greater than length of the reads %d.", orig_bc_len, orig_read_len);
         return 1;
     }
 
@@ -107,4 +103,81 @@ int strncmp_with_mismatch (const char *orig_bc, const char *orig_read, size_t mi
     }
     //this is in the case of error
     return 1;
+}
+
+// https://stackoverflow.com/questions/21880730/c-what-is-the-best-and-fastest-way-to-concatenate-strings
+//TODO this is a fastq mystrcat function, that returns a pointer to the end of the string
+char * get_fqread(kseq_t *fqrec, char *barcode, int no_comment, int remove_seq) {
+
+    size_t fqread_size = 0;
+
+    fqread_size += strlen(fqrec->seq.s);
+    fqread_size += (strlen(fqrec->name.s)*2);
+    fqread_size += strlen(fqrec->qual.s);
+    fqread_size += (strlen(fqrec->comment.s)*2);
+    fqread_size += 2;// header signs @ and +
+    fqread_size += 2;//two colons (:)
+    fqread_size += 4;//cariage returns
+    fqread_size += 2;//two spaces
+
+    char *umi = NULL;
+
+    if(barcode[0] != '\0') {
+        umi = (char*) malloc( strlen(fqrec->seq.s)-strlen(barcode) + 1 );
+        strcpy(umi, (fqrec->seq.s)+strlen(barcode));
+        fqread_size += strlen(umi);
+    }
+    
+    char *fqread = (char*) malloc(fqread_size + 1);
+    //makes it a zero length string
+    fqread[0] = '\0';
+
+    //@READNAME:BACRCODE:UMI
+    //1st line
+    strcat(fqread, "@");
+    strcat(fqread, fqrec->name.s);
+    //TODO later can have conditional here depending on the the structure and/or BARCODE/UMI
+    if(barcode[0] != '\0') {
+        strcat(fqread, ":");
+        strcat(fqread, barcode);
+
+        if(umi[0] == '\0') {
+            fprintf(stderr, "Error: This shouldn't happened.\n");
+            exit(EXIT_FAILURE);
+        }
+
+        strcat(fqread, ":");
+        strcat(fqread, umi);
+        free(umi);
+    }
+
+    if(fqrec->comment.l && no_comment == -1) {
+        strcat(fqread, " ");
+        strcat(fqread, fqrec->comment.s);
+    }
+    strcat(fqread, "\n");
+
+    //2nd line
+    if(remove_seq == 1) {
+        strcat(fqread, "N");
+    }
+    else {
+        strcat(fqread, (fqrec->seq.s)+strlen(barcode));
+    }
+    strcat(fqread, "\n");
+
+    //3rd line
+    strcat(fqread, "+");
+    strcat(fqread, fqrec->name.s);
+    if(fqrec->comment.l && no_comment == -1) {
+        strcat(fqread, " ");
+        strcat(fqread, fqrec->comment.s);
+    }
+    strcat(fqread, "\n");
+
+    //4th line
+    strcat(fqread, fqrec->qual.s);
+    strcat(fqread, "\n");
+
+    return fqread;
 }
