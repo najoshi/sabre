@@ -96,10 +96,10 @@ Be aware that if you do not format the barcode data file correctly, sabre will n
 #### Examples
 
     sabre pe -f input_file1.fastq -r input_file2.fastq -b barcode_data.txt \
-    -u unknown_barcode1.fastq -w unknown_barcode1.fastq
+    -u unknown_barcode1.fastq -w unknown_barcode2.fastq
 
     sabre pe -c -f input_file1.fastq -r input_file2.fastq -b barcode_data.txt \
-    -u unknown_barcode1.fastq -w unknown_barcode1.fastq
+    -u unknown_barcode1.fastq -w unknown_barcode2.fastq
 
     sabre pe -m 2 -f input_file1.fastq -r input_file2.fastq -b barcode_data.txt \
-    -u unknown_barcode1.fastq -w unknown_barcode1.fastq
+    -u unknown_barcode1.fastq -w unknown_barcode2.fastq
