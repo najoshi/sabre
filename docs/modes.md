@@ -5,7 +5,7 @@
 DOCS: In each case BARCODE and/or UMI are trimed off and
 put into FASTQ header:
 
-Not sure is I should have:
+Not sure if I should have:
 
        BARCODE always has a precedent i.e BARCODE:UMI
        OR
@@ -13,10 +13,10 @@ Not sure is I should have:
        if BARCODE+UMI then BARCODE:UMI
        else if UMI+BARCODE then UMI:BARCODE
 
-All modes that begin with 3 will return sinle, R1 file, mering
+All modes that begin with 3 will return single - R1 file, merging
 R1 read into R2 header and renaming R2 into R1
 
-10 = sinle-end where R1 has the following structure:
+10 = single-end where R1 has the following structure:
 
          R1 -->
          BARCODE+READ
@@ -33,7 +33,9 @@ this mode returns single file (R1) with barcode appended and into R1 header
          R1 -->     <-R2
          BARCODE----READ
 
-11 = sinle-end where R1 has the following structure:
+40 = paired-end where
+
+11 = single-end where R1 has the following structure:
 
          R1 -->
          BARCODE+UMI+READ
