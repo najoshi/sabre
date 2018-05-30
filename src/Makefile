@@ -2,7 +2,8 @@
 VERSION = 1.00
 CC = gcc
 INCL = kseq.h sabre.h
-SRC = demulti_paired.c demulti_single.c sabre.c utils.c
+#SRC = demulti_paired.c demulti_single.c sabre.c utils.c
+SRC = demulti_paired.c sabre.c utils.c
 OBJ = $(SRC:.c=.o)
 DSRC=src
 
