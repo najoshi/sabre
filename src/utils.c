@@ -14,6 +14,14 @@
 // https://stackoverflow.com/questions/2336242/recursive-mkdir-system-call-on-unix/11425692
 // https://stackoverflow.com/questions/7430248/creating-a-new-directory-in-c
 const char * _mkdir(const char *file_path) {
+
+    if(!file_path) {
+        fprintf (stderr,
+                "ERROR: This shouldn't happend, file path == %s\n",
+                file_path);
+        exit(EXIT_FAILURE);
+    }
+
     // return straigth away if a file_path is not nested file path
     if(strstr(file_path, "/") == NULL) {
         return file_path;
@@ -56,21 +64,23 @@ const char * _mkdir(const char *file_path) {
 //NOTE retuns zero on success
 //strcmp can be used for sorting, returns pos, zero, neg
 //BUT this new implementation can't be used as such just FYI 
-int strncmp_with_mismatch (const char *orig_bc, const char *orig_read, size_t mismatch, int max_5prime_crop) {
+int chk_bc_mtch(const char *orig_bc, const char *orig_read, size_t mismatch, int max_5prime_crop) {
 
     int orig_read_len = strlen(orig_read);
     int orig_bc_len = strlen(orig_bc);
     int n_crop = 0;
 
     if(orig_bc_len > orig_read_len) {
-        fprintf (stderr, "Length of the barcode %d is greater than length of the reads %d.", orig_bc_len, orig_read_len);
-        return 1;
+        fprintf (stderr,
+                "WARNING: Length of the barcode %d is greater than length of the reads %d.",
+                orig_bc_len, orig_read_len);
+        return -1;
     }
 
     while(n_crop <= max_5prime_crop) {
 
         if(n_crop > orig_read_len) {
-            return 1;
+            return -1;
         }
 
         int cnt = 0;
@@ -78,7 +88,7 @@ int strncmp_with_mismatch (const char *orig_bc, const char *orig_read, size_t mi
         const char *bc = orig_bc;
         const char *read = orig_read+n_crop;
         int bc_len = orig_bc_len;
-    
+
         while (bc_len-- > 0) {
             u1 = *bc++;
             u2 = *read++;
@@ -91,93 +101,137 @@ int strncmp_with_mismatch (const char *orig_bc, const char *orig_read, size_t mi
             }
 
             if (u1 == '\0' || u2 == '\0') {
-                return 0;
+                return n_crop;
             }
         }
 
         if(cnt <= mismatch) {
-            return 0;
+            return n_crop;
         }
 
         n_crop++;
     }
     //this is in the case of error
-    return 1;
+    return -1;
 }
 
 // https://stackoverflow.com/questions/21880730/c-what-is-the-best-and-fastest-way-to-concatenate-strings
 //TODO this is a fastq mystrcat function, that returns a pointer to the end of the string
-char * get_fqread(kseq_t *fqrec, char *barcode, int no_comment, int remove_seq) {
+void get_fqread(char **fqread, kseq_t *fqrec, char *barcode, char *umi_idx, int no_comment, int n_crop) {
 
-    size_t fqread_size = 0;
-
-    fqread_size += strlen(fqrec->seq.s);
-    fqread_size += (strlen(fqrec->name.s)*2);
-    fqread_size += strlen(fqrec->qual.s);
-    fqread_size += (strlen(fqrec->comment.s)*2);
-    fqread_size += 2;// header signs @ and +
-    fqread_size += 2;//two colons (:)
-    fqread_size += 4;//cariage returns
-    fqread_size += 2;//two spaces
-
-    char *umi = NULL;
-
-    if(barcode[0] != '\0') {
-        umi = (char*) malloc( strlen(fqrec->seq.s)-strlen(barcode) + 1 );
-        strcpy(umi, (fqrec->seq.s)+strlen(barcode));
-        fqread_size += strlen(umi);
+    if(n_crop < 0) {
+        fprintf(stderr,
+                "ERROR: n_crop set to %d. This can't happend\n",
+                n_crop);
+        exit(EXIT_FAILURE);
     }
-    
-    char *fqread = (char*) malloc(fqread_size + 1);
-    //makes it a zero length string
-    fqread[0] = '\0';
 
     //@READNAME:BACRCODE:UMI
     //1st line
-    strcat(fqread, "@");
-    strcat(fqread, fqrec->name.s);
+    strcat(*fqread, "@");
+    strcat(*fqread, fqrec->name.s);
     //TODO later can have conditional here depending on the the structure and/or BARCODE/UMI
-    if(barcode[0] != '\0') {
-        strcat(fqread, ":");
-        strcat(fqread, barcode);
+    if(barcode) {
+        strcat(*fqread, ":");
+        strcat(*fqread, barcode);
+    }
+    else if(!barcode) {
+        barcode = "";
+    }
 
-        if(umi[0] == '\0') {
-            fprintf(stderr, "Error: This shouldn't happened.\n");
-            exit(EXIT_FAILURE);
-        }
-
-        strcat(fqread, ":");
-        strcat(fqread, umi);
-        free(umi);
+    if(umi_idx) {
+        strcat(*fqread, ":");
+        strcat(*fqread, umi_idx);
     }
 
     if(fqrec->comment.l && no_comment == -1) {
-        strcat(fqread, " ");
-        strcat(fqread, fqrec->comment.s);
+        strcat(*fqread, " ");
+        strcat(*fqread, fqrec->comment.s);
     }
-    strcat(fqread, "\n");
+    strcat(*fqread, "\n");
 
     //2nd line
-    if(remove_seq == 1) {
-        strcat(fqread, "N");
-    }
-    else {
-        strcat(fqread, (fqrec->seq.s)+strlen(barcode));
-    }
-    strcat(fqread, "\n");
+    strcat(*fqread, (fqrec->seq.s)+strlen(barcode)+n_crop);
+    strcat(*fqread, "\n");
 
     //3rd line
-    strcat(fqread, "+");
-    strcat(fqread, fqrec->name.s);
+    strcat(*fqread, "+");
+    strcat(*fqread, fqrec->name.s);
     if(fqrec->comment.l && no_comment == -1) {
-        strcat(fqread, " ");
-        strcat(fqread, fqrec->comment.s);
+        strcat(*fqread, " ");
+        strcat(*fqread, fqrec->comment.s);
     }
-    strcat(fqread, "\n");
+    strcat(*fqread, "\n");
 
     //4th line
-    strcat(fqread, fqrec->qual.s);
-    strcat(fqread, "\n");
+    strcat(*fqread, (fqrec->qual.s)+strlen(barcode)+n_crop);
+    strcat(*fqread, "\n");
+}
 
-    return fqread;
+void get_merged_fqread(char **fqread, kseq_t *fqrec1, kseq_t *fqrec2, char *barcode, char *umi_idx, int no_comment, int n_crop) {
+
+    //@READNAME:BACRCODE:UMI
+    //1st line
+    strcat(*fqread, "@");
+    strcat(*fqread, fqrec1->name.s);
+    //TODO later can have conditional here depending on the the structure and/or BARCODE/UMI
+    if(barcode) {
+        strcat(*fqread, ":");
+        strcat(*fqread, barcode);
+    }
+
+    if(umi_idx) {
+        strcat(*fqread, ":");
+        strcat(*fqread, umi_idx);
+    }
+
+    if(fqrec1->comment.l && no_comment == -1) {
+        strcat(*fqread, " ");
+        strcat(*fqread, fqrec1->comment.s);
+    }
+    strcat(*fqread, "\n");
+
+    //2nd line
+    strcat(*fqread, fqrec2->seq.s);
+    strcat(*fqread, "\n");
+
+    //3rd line
+    strcat(*fqread, "+");
+    strcat(*fqread, fqrec2->name.s);
+    if(fqrec2->comment.l && no_comment == -1) {
+        strcat(*fqread, " ");
+        strcat(*fqread, fqrec2->comment.s);
+    }
+    strcat(*fqread, "\n");
+
+    //4th line
+    strcat(*fqread, (fqrec2->qual.s)+strlen(barcode)+n_crop);
+    strcat(*fqread, "\n");
+}
+
+void get_bc_fn(char **bcout_fn, char *s_name, char *barcode, int read_type) {
+
+    if(strlen(s_name) > MAX_FILENAME_LENGTH) {
+        fprintf (stderr,
+                "ERROR: Too many characters in your sample name; %s:%zd \n",
+                s_name, strlen(s_name));
+        exit(EXIT_FAILURE);
+    }
+
+    strcat(*bcout_fn, s_name);
+    strcat(*bcout_fn, "_");
+    strcat(*bcout_fn, barcode);
+
+    if(read_type == 1) {
+        strcat(*bcout_fn, "_R1.fastq.gz");
+    }
+    else if(read_type == 2) {
+        strcat(*bcout_fn, "_R2.fastq.gz");
+    }
+    else {
+        fprintf (stderr,
+                "ERROR: This shouldn't happened, wrong read type was passed through -> %d\n",
+                read_type);
+        exit(EXIT_FAILURE);
+    }
 }
