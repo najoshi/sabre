@@ -1,6 +1,8 @@
 #ifndef SABRE_H
 #define SABRE_H
 
+#include <zlib.h>
+
 #ifndef PROGRAM_NAME
 #define PROGRAM_NAME "sabre"
 #endif
@@ -53,17 +55,13 @@ typedef struct listel {
 typedef struct listel_p {
 	char* bc;
 	int num_records;
-	FILE* bcfile1;
-	FILE* bcfile2;
+	gzFile bcfile1;
+	gzFile bcfile2;
 	struct listel_p *next;
 } barcode_data_paired;
 
 
 /* Function Prototypes */
-int single_main (int argc, char *argv[]);
 int paired_main (int argc, char *argv[]);
-int strncmp_with_mismatch (const char *orig_bc, const char *orig_read, size_t mismatch, int max_5prime_crop);
-
-const char * _mkdir (const char *dir);
 
 #endif /*SABRE_H*/
