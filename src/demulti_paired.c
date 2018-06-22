@@ -340,7 +340,11 @@ int paired_main (int argc, char *argv[]) {
             //for now assume barcode and umi are in R1 raed
             if(umi > 0) {
                 umi_idx = (char*) malloc( strlen(fqrec1->seq.s)-strlen(curr->bc) + 1 );
-                strcpy(umi_idx, (fqrec1->seq.s)+strlen(curr->bc)+n_crop);
+                //strcpy(umi_idx, (fqrec1->seq.s)+strlen(curr->bc)+n_crop);
+                //TODO should probably also adjust umi_idx malloc to account for less space
+                strncpy(umi_idx, (fqrec1->seq.s)+strlen(curr->bc)+n_crop, strlen(umi_idx)-max_5prime_crop);
+                umi_idx[strlen(umi_idx)-max_5prime_crop+1] = '\0';
+
                 fq_size += strlen(umi_idx);
 
                 if(strlen(umi_idx) < min_umi_len) {
