@@ -61,7 +61,7 @@ void paired_usage (int status) {
 }
 
 int paired_main (int argc, char *argv[]) {
-    
+
     //clock_t begin = clock();
     time_t start, end;
     start = time(NULL);
@@ -270,20 +270,21 @@ int paired_main (int argc, char *argv[]) {
         curr->bcfile1 = gzopen(_mkdir(bcout_fn1), "wb");
 
     if(paired > 0 && combine < 0) {
-              bcout_fn2 = (char *) malloc(MAX_FILENAME_LENGTH*2);
+        bcout_fn2 = (char *) malloc(MAX_FILENAME_LENGTH*2);
         bcout_fn2[0] = '\0';
-              get_bc_fn(&bcout_fn2, s_name, curr->bc, 2);
-              //curr->bcfile2 = fopen (_mkdir(bcout_fn2), "w");
-              curr->bcfile2 = gzopen(_mkdir(bcout_fn2), "wb");
+        get_bc_fn(&bcout_fn2, s_name, curr->bc, 2);
+        //curr->bcfile2 = fopen (_mkdir(bcout_fn2), "w");
+        curr->bcfile2 = gzopen(_mkdir(bcout_fn2), "wb");
     }
 
         curr->num_records = 0;
         curr->next = head;
         head = curr;
 
-        //free(bcout_fn1);
-        //free(bcout_fn2);
     }
+
+    free(bcout_fn1);
+    free(bcout_fn2);
 
     fqrec1 = kseq_init (pe1);
 
@@ -339,11 +340,9 @@ int paired_main (int argc, char *argv[]) {
         if (curr != NULL) {
             //for now assume barcode and umi are in R1 raed
             if(umi > 0) {
-                umi_idx = (char*) malloc( strlen(fqrec1->seq.s)-strlen(curr->bc) + 1 );
-                //strcpy(umi_idx, (fqrec1->seq.s)+strlen(curr->bc)+n_crop);
-                //TODO should probably also adjust umi_idx malloc to account for less space
-                strncpy(umi_idx, (fqrec1->seq.s)+strlen(curr->bc)+n_crop, strlen(umi_idx)-max_5prime_crop);
-                umi_idx[strlen(umi_idx)-max_5prime_crop+1] = '\0';
+                const char *actl_umi_idx = (fqrec1->seq.s)+strlen(curr->bc)+n_crop;
+                umi_idx = strdup(actl_umi_idx);
+                umi_idx[strlen(umi_idx)-(max_5prime_crop-n_crop)] = '\0';
 
                 fq_size += strlen(umi_idx);
 
@@ -358,7 +357,6 @@ int paired_main (int argc, char *argv[]) {
 
                 get_merged_fqread(&fqread1, fqrec1, fqrec2, actl_bc, umi_idx, no_comment, n_crop);
                 gzwrite(curr->bcfile1, fqread1, strlen(fqread1));
-                free(fqread1);
             }
             else {
                 fqread1 = (char*) malloc(fq_size + 1);
@@ -376,9 +374,6 @@ int paired_main (int argc, char *argv[]) {
                     gzwrite(curr->bcfile2, fqread2, strlen(fqread2));
                     curr->num_records += 1;
                 }
-
-                free(fqread1);
-                free(fqread2);
             }
             curr->num_records += 1;
         }
@@ -398,12 +393,13 @@ int paired_main (int argc, char *argv[]) {
                 gzwrite(unknownfile2, fqread2, strlen(fqread2));
                 num_unknown += 1;
             }
-
-            free(fqread1);
-            free(fqread2);
         }
 
         total += 2;
+
+        free(fqread1);
+        free(fqread2);
+        free(actl_bc);
         free(umi_idx);
     }
 
@@ -425,7 +421,7 @@ int paired_main (int argc, char *argv[]) {
 
     fprintf (log_file, "Barcode\tN_records\tN_pairs\tP_pairs\n");
     curr = head;
-    int total_pairs = total/2; 
+    int total_pairs = total/2;
 
     while (curr) {
 
