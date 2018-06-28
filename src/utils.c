@@ -205,7 +205,7 @@ void get_merged_fqread(char **fqread, kseq_t *fqrec1, kseq_t *fqrec2, char *barc
     strcat(*fqread, "\n");
 
     //4th line
-    strcat(*fqread, (fqrec2->qual.s)+strlen(barcode)+n_crop);
+    strcat(*fqread, (fqrec2->qual.s));
     strcat(*fqread, "\n");
 }
 
