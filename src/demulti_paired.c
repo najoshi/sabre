@@ -32,7 +32,7 @@
 
 void paired_usage (int status) {
 
-    fprintf (stderr, "\n  Usage: %s pe [OPTIONS] -f <fastq_R1> -r <fastq_R2> -b <barcode_file> -u <unassigned_R1> -w <unassigned_R2>\
+    fprintf (stderr, "\n  Usage: %s pe [OPTIONS] -f <fastq_R1> -r <fastq_R2> -b <barcode_file>\
             \n\
             \n\
             \n  Options:\
@@ -77,6 +77,9 @@ int paired_main (int argc, char *argv[]) {
     gzFile unknownfile2=NULL;
     char *unknownfn1=strdup("unassigned_R1.fastq.gz");
     char *unknownfn2=strdup("unassigned_R2.fastq.gz");
+
+    FILE* umis_2_short_file=NULL;
+    char *umis_2_short_fn=strdup("umis_too_short.txt");
 
     FILE* log_file=NULL;
     int optc;
@@ -191,25 +194,25 @@ int paired_main (int argc, char *argv[]) {
             !strcmp (fq2, barfn) || !strcmp (unknownfn1, unknownfn2) || !strcmp (unknownfn1, barfn) ||
             !strcmp (unknownfn2, barfn)) {
 
-        fprintf (stderr, "Error: Duplicate input and/or output file names.\n");
+        fprintf (stderr, "ERROR: Duplicate input and/or output file names.\n");
         return EXIT_FAILURE;
     }
 
     pe1 = gzopen (fq1, "r");
     if (!pe1) {
-        fprintf (stderr, "Could not open input file 1 '%s'.\n", fq1);
+        fprintf (stderr, "ERROR: Could not open input file 1 '%s'.\n", fq1);
         return EXIT_FAILURE;
     }
 
     pe2 = gzopen (fq2, "r");
     if (!pe2) {
-        fprintf (stderr, "Could not open input file 2 '%s'.\n", fq2);
+        fprintf (stderr, "ERROR: Could not open input file 2 '%s'.\n", fq2);
         return EXIT_FAILURE;
     }
 
     unknownfile1 = gzopen(unknownfn1, "wb");
     if (!unknownfile1) {
-        fprintf (stderr, "Could not open unknown output file 1 '%s'.\n", unknownfn1);
+        fprintf (stderr, "ERROR: Could not open unknown output file 1 '%s'.\n", unknownfn1);
         return EXIT_FAILURE;
     }
 
@@ -229,28 +232,33 @@ int paired_main (int argc, char *argv[]) {
         paired = 1;
     }
 
+    umis_2_short_file = fopen(umis_2_short_fn, "a");
+    fprintf(umis_2_short_file, "name\tumi\tlen\tmin_len\n");
+
     fprintf(stderr, "\n\
             \n  Running: %s\
             \n  Command line args:\
-            \n      --pe-file1 %s\
-            \n      --pe-file2 %s\
-            \n      --barcode-file %s\
-            \n      --unknown-output1 %s\
-            \n      --unknown-output2 %s\
+            \n      --fq1 %s\
+            \n      --fq2 %s\
+            \n      --barcodes %s\
+            \n      --unassigned %s\
             \n      --combine %d\
+            \n      --umi %d\
             \n      --max-mismatch %d\
             \n      --min-umi-len %d\
             \n      --max-5prime-crop %d\
-            \n      --stats %s\
             \n      --no-comment %d\
+            \n      --stats %s\
             \n\
             \n  In Progess...\
             \n", PROGRAM_NAME,\
             fq1, fq2,\
             barfn,\
-            unknownfn1, unknownfn2,\
-            combine,\
-            mismatch, min_umi_len, max_5prime_crop, log_fn, no_comment);
+            unknownfn1,\
+            combine, umi,\
+            mismatch, min_umi_len,
+            max_5prime_crop, no_comment,\
+            log_fn);
 
     char *bcout_fn1 = NULL;
     char *bcout_fn2 = NULL;
@@ -298,7 +306,6 @@ int paired_main (int argc, char *argv[]) {
         int n_crop = 0;
 
         char *actl_bc = NULL;
-        char *umi_idx = NULL;
 
         char *fqread1 = NULL;
         char *fqread2 = NULL;
@@ -318,7 +325,12 @@ int paired_main (int argc, char *argv[]) {
         if(paired > 0 || combine > 0) {
             l2 = kseq_read (fqrec2);
             if (l2 < 0) {
-                fprintf (stderr, "ERROR: R2 file is shorter than R1 file. Disregarding rest of R1 file \n");
+                fprintf (stderr, "\n\
+				  \n ERROR: R2 file is shorter than R1 file.\
+				  \n Stopping here:\
+				  \n %s\
+				  \n",
+				  fqrec1 -> name.s);
                 break;
             }
             fq_size += strlen(fqrec2->seq.s);
@@ -337,6 +349,9 @@ int paired_main (int argc, char *argv[]) {
         }
 
         /* Write read out into barcode specific file */
+
+        char *umi_idx = NULL;
+
         if (curr != NULL) {
             //for now assume barcode and umi are in R1 raed
             if(umi > 0) {
@@ -347,7 +362,8 @@ int paired_main (int argc, char *argv[]) {
                 fq_size += strlen(umi_idx);
 
                 if(strlen(umi_idx) < min_umi_len) {
-                    break;
+                    fprintf(umis_2_short_file, "%s\t%s\t%zu\t%d\n", fqrec1->name.s, umi_idx, strlen(umi_idx), min_umi_len);
+                    continue;
                 }
             }
 
@@ -403,14 +419,6 @@ int paired_main (int argc, char *argv[]) {
         free(umi_idx);
     }
 
-    if (l1 < 0) {
-        l2 = kseq_read (fqrec2);
-        if (l2 >= 0) {
-            fprintf (stderr, "Error: PE file 1 is shorter than PE file 2. Disregarding rest of PE file 2.\n");
-        }
-    }
-
-    //if (!quiet) {
     //if (!log_fn) { is this better?
     if (log_fn == NULL) {
         log_file = stdout;
@@ -437,8 +445,8 @@ int paired_main (int argc, char *argv[]) {
     float percent_unknown = (float) unknown_pairs/total_pairs;
     float tot_chk = (float) total_pairs/total_pairs;
 
-    fprintf (log_file, "unassigned\t%d\t%d\t%.2f\n", num_unknown, unknown_pairs, percent_unknown);
-    fprintf (log_file, "total\t%d\t%d\t%.2f\n", total, total_pairs, tot_chk);
+    fprintf(log_file, "unassigned\t%d\t%d\t%.2f\n", num_unknown, unknown_pairs, percent_unknown);
+    fprintf(log_file, "total\t%d\t%d\t%.2f\n", total, total_pairs, tot_chk);
 
     end = time(NULL);
     fprintf(stderr, "\n All done :) \
@@ -453,12 +461,14 @@ int paired_main (int argc, char *argv[]) {
     gzclose (unknownfile2);
     fclose (barfile);
     fclose (log_file);
+    fclose(umis_2_short_file);
 
     free (fq1);
     free (fq2);
     free (barfn);
     free (unknownfn1);
     free (unknownfn2);
+    free(umis_2_short_fn);
     free (log_fn);
 
     curr = head;
