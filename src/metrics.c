@@ -7,12 +7,14 @@ gcc -Wall -O2 -std=c99 -o metrics metrics.c -lz
 */
 
 #define BARCODE_ARRAY 1000000
-//#define BARCODE 20
 
 //int chk_bc_arr(const char *arr, char *bc);
 
-// char **arr and char *arr[] mean the same things
-// but later one more informative
+/*
+  WISDOM char **arr and char *arr[] mean the same things
+  but later one more informative
+ */
+
 int chk_bc_arr(char *arr[], char *bc) {
 
     int i = 0;
@@ -28,11 +30,12 @@ int chk_bc_arr(char *arr[], char *bc) {
 
     // error handling
     if(i == BARCODE_ARRAY-1) {
-        fprintf(stderr, "ERROR: gone too far\n");
+        fprintf(stderr, "ERROR: gone too far in the array\n");
         exit(1);
     }
 
-    //arr[i+1]=0] could also do that
+    // could also do initialisation of the next element here
+    // arr[i+1]=0;
     return i;
 }
 
@@ -45,16 +48,17 @@ int main (int argc, char *argv[]) {
 
     fqrec1 = kseq_init(pe1);
 
-    //char barcodes[BARCODE_ARRAY];
-    // actual two different things
-    //char barcodes[BARCODE_ARRAY][BARCODE];
+    /*
+      WISDOM these tow are actually different things
+      char barcodes[BARCODE_ARRAY][BARCODE];
+      char *barcodes[];
+     */
 
     char **barcodes = calloc(BARCODE_ARRAY, sizeof(char*));
     int *bc_cnts = calloc(BARCODE_ARRAY, sizeof(int));
 
     /* Get reads, one at a time */
     while ((l1 = kseq_read(fqrec1)) >= 0) {
-        //fprintf(stdout, "%s\n", fqrec1->name.s);
 
         char *last;
         char *last2;
@@ -62,19 +66,20 @@ int main (int argc, char *argv[]) {
         char *p = strtok(fqrec1->name.s, ":");
 
         while (p != NULL) {
-            //fprintf(stdout, "%s\n", p);
             last2 = last;
             last = p;
             p = strtok(NULL, ":");
         }
 
-        //fprintf(stdout, "%s %zu\n", last2, strlen(last2));
         int bc_idx = chk_bc_arr(barcodes, last2);
         bc_cnts[bc_idx] += 1;
     }
 
     {
-            // this is to limit the right scope for i
+        /*
+	  WISDOM this is to limit the right scope for i
+	 */
+
         int i = 0;
         while(barcodes[i] != 0) {
             fprintf(stdout, "%s %d\n", barcodes[i], bc_cnts[i]);
