@@ -1,5 +1,3 @@
-#include <stdio.h>
-#include <string.h>
 #include "utils.h"
 
 /*
@@ -15,18 +13,18 @@ gcc -Wall -O2 -std=c99 -o metrics metrics.c -lz
   but later one more informative
  */
 
-int chk_bc_arr(char *arr[], char *bc) {
+int chk_bc_arr(barcodes_t *arr, char *bc) {
 
     int i = 0;
-    while(arr[i] != 0) {
-        if(strcmp(bc, arr[i]) == 0) {
+    while(arr[i].bc != 0) {
+        if(strcmp(bc, arr[i].bc) == 0) {
             return i;
     }
 
         i += 1;
     }
 
-    arr[i] = strdup(bc);
+    arr[i].bc = strdup(bc);
 
     // error handling
     if(i == BARCODE_ARRAY-1) {
@@ -38,6 +36,14 @@ int chk_bc_arr(char *arr[], char *bc) {
     // arr[i+1]=0;
     return i;
 }
+
+int bc_n_cmp(const void *a1, const void *b1) {
+
+    const barcodes_t* a=a1;
+    const barcodes_t* b=b1;
+
+    return a->cnts - b->cnts;
+};
 
 int main (int argc, char *argv[]) {
 
@@ -54,8 +60,11 @@ int main (int argc, char *argv[]) {
       char *barcodes[];
      */
 
-    char **barcodes = calloc(BARCODE_ARRAY, sizeof(char*));
-    int *bc_cnts = calloc(BARCODE_ARRAY, sizeof(int));
+    //char **barcodes = calloc(BARCODE_ARRAY, sizeof(char*));
+    //int *bc_cnts = calloc(BARCODE_ARRAY, sizeof(int));
+
+    barcodes_t *barcodes;
+    barcodes = calloc(BARCODE_ARRAY, sizeof(barcodes_t));
 
     /* Get reads, one at a time */
     while ((l1 = kseq_read(fqrec1)) >= 0) {
@@ -72,7 +81,15 @@ int main (int argc, char *argv[]) {
         }
 
         int bc_idx = chk_bc_arr(barcodes, last2);
-        bc_cnts[bc_idx] += 1;
+        barcodes[bc_idx].cnts += 1;
+    }
+
+    {
+        int n = 0;
+        while(barcodes[n].bc != 0) {
+            n++;
+        }
+        qsort(barcodes, n, sizeof(barcodes_t), bc_n_cmp);
     }
 
     {
@@ -81,8 +98,8 @@ int main (int argc, char *argv[]) {
 	 */
 
         int i = 0;
-        while(barcodes[i] != 0) {
-            fprintf(stdout, "%s %d\n", barcodes[i], bc_cnts[i]);
+        while(barcodes[i].bc != 0) {
+            fprintf(stdout, "%s %d\n", barcodes[i].bc, barcodes[i].cnts);
             i++;
         }
     }
@@ -97,11 +114,6 @@ int main (int argc, char *argv[]) {
 //write a function to sort  e.g bubbleSort
 //actually sorting function should be simpler then bubbleSort
 //it should return -1, 0 or 1. OR -1 or 1.
-//typedef struct barcodes_t {
-//    char *barcodes;
-//    int cnts;
-//} barcodes_t;
-//
 //
 //barcodes_t barcodes[size];
 //

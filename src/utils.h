@@ -1,8 +1,15 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <stdio.h>
+#include <string.h>
 #include <zlib.h>
 #include "kseq.h"
+
+typedef struct barcodes_t {
+    char *bc;
+    int cnts;
+} barcodes_t;
 
 KSEQ_INIT(gzFile, gzread)
 
