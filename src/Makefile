@@ -34,8 +34,14 @@ build: $(OBJ)
 dev: $(OBJ)
 	$(CC) $(CFLAGSDEV) $(OBJ) -o $(EXE)-dev $(LDFLAGS)
 
+metrics:
+	$(CC) $(CFLAGSDEV) -o metrics metrics.c $(LDFLAGS)
+
 gprof:
 	$(CC) $(CFLAGS) $(GPROF) $(SRC) -o $(EXE).gprof $(LDFLAGS)
 
 clean:
-	$(RM) $(OBJ) $(EXE) $(EXE).gprof core gmon.out
+	$(RM) $(OBJ) $(EXE) core
+
+clean-all:
+	$(RM) $(OBJ) $(EXE) $(EXE)-dev $(EXE).gprof core gmon.out metrics
