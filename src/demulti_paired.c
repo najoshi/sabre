@@ -326,11 +326,11 @@ int paired_main (int argc, char *argv[]) {
             l2 = kseq_read (fqrec2);
             if (l2 < 0) {
                 fprintf (stderr, "\n\
-				  \n ERROR: R2 file is shorter than R1 file.\
-				  \n Stopping here:\
-				  \n %s\
-				  \n",
-				  fqrec1 -> name.s);
+                                  \n ERROR: R2 file is shorter than R1 file.\
+                                  \n Stopping here:\
+                                  \n %s\
+                                  \n",
+                                  fqrec1 -> name.s);
                 break;
             }
             fq_size += strlen(fqrec2->seq.s);
@@ -355,13 +355,32 @@ int paired_main (int argc, char *argv[]) {
         if (curr != NULL) {
             //for now assume barcode and umi are in R1 raed
             if(umi > 0) {
+                //TODO will have to check at some point that none of
+                // number in the square brackets are zero. It sort of implies
+                // but good be a potential bug
                 const char *actl_umi_idx = (fqrec1->seq.s)+strlen(curr->bc)+n_crop;
                 umi_idx = strdup(actl_umi_idx);
                 umi_idx[strlen(umi_idx)-(max_5prime_crop-n_crop)] = '\0';
 
+                /*TODO
+                 * There was a note below from myself in the past.
+                 * I don't think I need to worry about that comment, but leaving it in for now
+                 *
+                 * Here need to add abit of code that pads out umi to a set length
+                 * if min umi length is 9, make the umi 9 bases, padded up with N's to make the length
+                 *
+                 */
+
+                int fin_umi_len = strlen(umi_idx)-min_umi_len;
+
+                if(fin_umi_len > 0) {
+                    umi_idx[strlen(umi_idx)-fin_umi_len] = '\0';
+                }
+
                 fq_size += strlen(umi_idx);
 
-                if(strlen(umi_idx) < min_umi_len) {
+                //if(strlen(umi_idx) < min_umi_len) {
+                if(fin_umi_len < 0) {
                     fprintf(umis_2_short_file, "%s\t%s\t%zu\t%d\n", fqrec1->name.s, umi_idx, strlen(umi_idx), min_umi_len);
                     continue;
                 }
