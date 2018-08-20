@@ -11,6 +11,12 @@ typedef struct barcodes_t {
     int cnts;
 } barcodes_t;
 
+typedef struct umis_t {
+    char *bc;
+    int len;
+    int cnts;
+} umis_t;
+
 KSEQ_INIT(gzFile, gzread)
 
 //This is needed if compilling with -std=c99, read below for more
