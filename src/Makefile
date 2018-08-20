@@ -8,6 +8,8 @@ OBJ = $(SRC:.c=.o)
 DSRC=src
 
 CFLAGS = -Wall -O2 -std=c99 -pedantic -DVERSION=$(VERSION)
+CFLAGSDEV = -Wall -O0 -ggdb -std=c99 -pedantic -DVERSION=$(VERSION)
+
 LDFLAGS = -lz
 GPROF = -pg
 EXE = sabre
@@ -26,11 +28,14 @@ demulti_paired.o: kseq.h sabre.h
 sabre.o: sabre.h
 
 build: $(OBJ)
-	$(CC) $(CFLAGS) $(OBJ) -o $(EXE) $(LDFLAGS) 
+	$(CC) $(CFLAGS) $(OBJ) -o $(EXE) $(LDFLAGS)
 	#ln -sf $(DSRC)/$(EXE) ..
 
-gprof: 
-	$(CC) $(CFLAGS) $(GPROF) $(SRC) -o $(EXE).gprof $(LDFLAGS) 
+dev: $(OBJ)
+	$(CC) $(CFLAGSDEV) $(OBJ) -o $(EXE)-dev $(LDFLAGS)
+
+gprof:
+	$(CC) $(CFLAGS) $(GPROF) $(SRC) -o $(EXE).gprof $(LDFLAGS)
 
 clean:
 	$(RM) $(OBJ) $(EXE) $(EXE).gprof core gmon.out
