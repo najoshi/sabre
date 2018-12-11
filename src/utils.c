@@ -1,15 +1,4 @@
-#include <limits.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <libgen.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include "sabre.h"
-#include <assert.h>
-#include <ctype.h>
-#include <string.h>
-#include "utils.h"
 
 // https://stackoverflow.com/questions/2336242/recursive-mkdir-system-call-on-unix/11425692
 // https://stackoverflow.com/questions/7430248/creating-a-new-directory-in-c

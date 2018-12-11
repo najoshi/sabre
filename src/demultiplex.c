@@ -12,112 +12,176 @@
  * 
  */
 
-int demulti() {
+#include "sabre.h"
 
-    barcode_data_paired *curr, *head, *temp;
-    char barcode [MAX_BARCODE_LENGTH];
-    char s_name [MAX_FILENAME_LENGTH];
+void* demult_runner(void *arg)
+{
 
-    /* Creating linked list of barcode data */
-    // https://www.hackerearth.com/practice/data-structures/linked-list/singly-linked-list/tutorial/
-    // where each node is represents one barcode from the barcode file
-    // number of nodes should equal to number of barcodes (lines) in the file
-    head = NULL;
-    while (fscanf (barfile, "%s%s", barcode, s_name) != EOF) {
-        curr = (barcode_data_paired*) malloc (sizeof (barcode_data_paired));
-        curr->bc = (char*) malloc (strlen(barcode) + 1);
-        strcpy(curr->bc, barcode);
+    kseq_t fqrec1;
+    kseq_t fqrec2;
 
-        char *bcout_fn1 = get_bc_fn(barcode, s_name, 1);
-        char *bcout_fn2 = get_bc_fn(barcode, s_name, 1);
+    int l1, l2;
+    thread_data_t* thread_data = (thread_data*)arg;
+    int my_line_num;
 
-        curr->bcfile1 = fopen (_mkdir(bcout_fn1), "w");
-        curr->bcfile2 = fopen (_mkdir(bcout_fn2), "w");
-        curr->num_records = 0;
+    fqrec1 = kseq_init(thread_data->fq1_fd);
 
-        curr->next = head;
-        head = curr;
-    }
-
-    fqrec1 = kseq_init (pe1);
-
-    if(paired > 0) {
-        fqrec2 = kseq_init (pe2);
+    if(thread_data->paired > 0) {
+        fqrec2 = kseq_init(thread_data->fq2_fd);
     }
 
     /* Get reads, one at a time */
-    while((l1 = kseq_read (fqrec1)) >= 0) {
 
-	int n_crop_fq1;
-	int n_crop_fq2;
-	char *actl_bc_fq1 = [MAX_BARCODE_LENGTH];
-	char *actl_bc_fq2 = [MAX_BARCODE_LENGTH];
+    while(1) {
 
-        if(paired > 0) {
-            l2 = kseq_read (fqrec2);
+        // lock reading
+        pthread_mutex_lock(thread_data->in_lock);
+
+        l1 = kseq_read(fqrec1);
+
+	// sanity check no more reads
+	if(l1 < 0 ) {
+            pthread_mutex_unlock(thread_data->in_lock);
+            break;	
+	}
+	
+        int n_crop = 0;
+
+        char *actl_bc = NULL;
+
+        char *fqread1 = NULL;
+        char *fqread2 = NULL;
+
+        size_t fq_size = 0;
+
+        fq_size += strlen(fqrec1->seq.s);
+        fq_size += (strlen(fqrec1->name.s)*2);
+        fq_size += strlen(fqrec1->qual.s);
+        fq_size += (strlen(fqrec1->comment.s)*2);
+        fq_size += 2;// header signs @ and +
+        fq_size += 2;//two colons (:)
+        fq_size += 4;//cariage returns
+        fq_size += 2;//two spaces
+        fq_size += 1000;//test
+
+        if(paired > 0 || combine > 0) {
+            l2 = kseq_read(fqrec2);
             if (l2 < 0) {
-                fprintf (stderr, "ERROR: R2 file is shorter than R1 file. Disregarding rest of R1 file \n");
+                fprintf (stderr, "\n\
+                                  \n ERROR: R2 file is shorter than R1 file.\
+                                  \n Stopping here:\
+                                  \n %s\
+                                  \n",
+                                  fqrec1->name.s);
                 break;
             }
+            fq_size += strlen(fqrec2->seq.s);
         }
 
-        /* Find matching barcode */
-        curr = head;
-        while (curr) {
-
-            n_crop_fq1 = chk_bc_mtch(curr->bc, fqrec1->seq.s, mismatch, max_5prime_crop);
-            if (n_crop_fq1 >= 0) {
+        /* Step 1: Find matching barcode */
+        thread_data->curr = head;
+        while(thread_data->curr) {
+            n_crop = chk_bc_mtch(thread_data->curr->bc, fqrec1->seq.s, thread_data->params->mismatch, thread_data->params->max_5prime_crop);
+            if(n_crop >= 0) {
                 //found matching barcode
+                actl_bc = strndup( (fqrec1->seq.s)+n_crop, strlen(thread_data->curr->bc) );
                 break;
             }
-
-	    if(paired > 0) {
-
-		n_crop_fq2 = chk_bc_mtch(curr->bc, fqrec2->seq.s, mismatch, max_5prime_crop);
-
-            	if (n_crop_fq2 < 0) {
-		    // it is ok not to have matching barcode..
-		    fprintf (stderr, "ERROR: R2 didn't have a matching barcode. \n");
-            	}
-
-            	if (n_crop_fq1 != n_crop_fq2) {
-		    // this will go heand in heand with previous check
-		    // but can be stand along thing as well, when one read has an overhand 
-		    // and the other doesn't, shouldn't be the case though (I think)
-		    fprintf (stderr, "ERROR: Number of cropped bases doesn't match between R1 and R2\n");
-		}
-
-		actl_bc_fq1 = strlen(fqrec1->seq.s)+strlen(curr->bc)+n_crop_fq1;
-		actl_bc_fq2 = strlen(fqrec2->seq.s)+strlen(curr->bc)+n_crop_fq2;
-
-                // didn't match if != zero
-		if(strcmp(actl_bc_fq1, actl_bc_fq2) != 0) {
-		    fprintf (stderr, "ERROR: Actual R1 and R2 barcodes didn't match, %s and %s. This is strange.. \n",
-			              actl_bc_fq1,
-				      actl_bc_fq2);
-		}
-		else {
-		    //write read out to a matching barcode
-		    break;
-		}
-	    }
-
-            curr = curr->next;
+            thread_data->curr = thread_data->curr->next;
         }
 
-        /* Write read out into barcode specific file */
-        if(curr != NULL) {
-            // if UMI is shorter then 10, discard the reads
-            //if(strlen((fqrec1->seq.s)+strlen(curr->bc)) >= min_umi_len) {
+        // unlock reading
+        my_line_num = *(thread_data->line_num);
+        *thread_data->line_num += 1;
+        pthread_mutex_unlock(thread_data->in_lock);
 
-            fqrec1->name.s
-            fqrec1->seq.s
-            fqrec1->comment.l
-            fqrec1->qual.s
-            curr->bc
+        /* Step 2: Write read out into barcode specific file */
 
-            char *trimed_fq1 = (fqrec1->seq.s)+strlen(curr->bc);
+        // lock writing
+        while(*(thread_data->out_line_num) != my_line_num) {
+            pthread_cond_wait(thread_data->cv, thread_data->out_lock);
+        }
+        *thread_data->out_line_num += 1;
 
-	    //}
+        pthread_cond_broadcast(thread_data->cv);  // Tell everyone it might be their turn!
+
+        char *umi_idx = NULL;
+
+        if(thread_data->curr != NULL) {
+            //for now assume barcode and umi are in R1 read
+            if(thread_data->params->umi > 0) {
+
+                const char *actl_umi_idx = (fqrec1->seq.s)+strlen(thread_data->curr->bc)+n_crop;
+
+                if(strlen(actl_umi_idx) < thread_data->params->min_umi_len) {
+			//protect by mutex umis_2_short_file
+                    fprintf(thread_data->params->umis_2_short_fd, "%s\t%s\t%zu\t%d\n", fqrec1->name.s, actl_umi_idx, strlen(actl_umi_idx), thread_data->params->min_umi_len);
+                    continue;
+                }
+                else {
+                   umi_idx = strdup(actl_umi_idx);
+                   umi_idx[min_umi_len] = '\0';
+                   fq_size += strlen(umi_idx);
+                }
+            }
+
+            if(thread_data->params->combine > 0) {
+                fqread1 = (char*) malloc(fq_size);
+                fqread1[0] = '\0';
+
+                get_merged_fqread(&fqread1, fqrec1, fqrec2, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
+			//protect by mutex umis_2_short_file
+                gzwrite(thread_data->curr->bcfile1, fqread1, strlen(fqread1));
+            }
+            else {
+                fqread1 = (char*) malloc(fq_size + 1);
+                fqread2 = (char*) malloc(fq_size + 1);
+
+                fqread1[0] = '\0';
+                fqread2[0] = '\0';
+
+                get_fqread(&fqread1, fqrec1, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
+                gzwrite(thread_data->curr->bcfile1, fqread1, strlen(fqread1));
+
+                if(thread_data->params->paired > 0) {
+                    get_fqread(&fqread2, fqrec1, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
+                    //fprintf(curr->bcfile2, "%s", fqread2);
+                    gzwrite(thread_data_.curr->bcfile2, fqread2, strlen(fqread2));
+                    *thread_data->curr->num_records += 1;
+                }
+            }
+            *thread_data->curr->num_records += 1;
+        }
+        else {
+            fqread1 = (char*) malloc(fq_size + 1);
+            fqread2 = (char*) malloc(fq_size + 1);
+
+            fqread1[0] = '\0';
+            fqread2[0] = '\0';
+
+            get_fqread(&fqread1, fqrec1, NULL, NULL, thread_data->params->no_comment, 0);
+            gzwrite(thread_data->unassigned1_fd, fqread1, strlen(fqread1));
+            *metrics->num_unknown += 1;
+
+            if(paired > 0) {
+                get_fqread(&fqread2, thread_data->fqrec2, NULL, NULL, no_comment, 0);
+                gzwrite(thread_data->unassigned1_fd, fqread2, strlen(fqread2));
+                *metrics->num_unknown += 1;
+            }
+        }
+
+        *metrics->total += 2;
+
+        // unlock writing
+        pthread_mutex_unlock(thread_data->out_lock);
+
+        free(fqread1);
+        free(fqread2);
+        free(actl_bc);
+        free(umi_idx);
     }
+
+    free(data);
+
+    return NULL;
 }
