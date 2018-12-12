@@ -30,6 +30,7 @@ int main(int argc, char *argv[]) {
     // stack gets cleaned when function exits,
     // because of that no need to free either
     param_t params;
+    set_default_params(&params);
 
     metrics_t metrics;
 
@@ -222,30 +223,29 @@ int main(int argc, char *argv[]) {
         //curr->bcfile1 = fopen (_mkdir(bcout_fn1), "w");
         curr->bcfile1 = gzopen(_mkdir(bcout_fn1), "wb");
         //curr->bcfile1 = popen(_mkdir(bcout_fn1), "wb");
-	// popen returns file handler
+        // popen returns file handler
 
-    if(paired > 0 && combine < 0) {
-        bcout_fn2 = (char *) malloc(MAX_FILENAME_LENGTH*2);
-        bcout_fn2[0] = '\0';
-        get_bc_fn(&bcout_fn2, s_name, curr->bc, 2);
-        //curr->bcfile2 = fopen (_mkdir(bcout_fn2), "w");
-        curr->bcfile2 = gzopen(_mkdir(bcout_fn2), "wb");
-    }
+        if(paired > 0 && combine < 0) {
+            bcout_fn2 = (char *) malloc(MAX_FILENAME_LENGTH*2);
+            bcout_fn2[0] = '\0';
+            get_bc_fn(&bcout_fn2, s_name, curr->bc, 2);
+            //curr->bcfile2 = fopen (_mkdir(bcout_fn2), "w");
+            curr->bcfile2 = gzopen(_mkdir(bcout_fn2), "wb");
+        }
 
         curr->num_records = 0;
         curr->next = head;
         head = curr;
-
     }
 
     free(bcout_fn1);
     free(bcout_fn2);
-    free(fq1_fn);
-    free(fq2_fn);
     free(barfn);
-    free(unassigned1_fn);
-    free(unassigned2_fn);
-    free(umis_2_short_fn);
+    //free(fq1_fn);
+    //free(fq2_fn);
+    //free(unassigned1_fn);
+    //free(unassigned2_fn);
+    //free(umis_2_short_fn);
 
     // Threading
     pthread_t tid[threads];

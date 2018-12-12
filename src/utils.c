@@ -219,8 +219,18 @@ void get_bc_fn(char **bcout_fn, char *s_name, char *barcode, int read_type) {
     }
     else {
         fprintf (stderr,
-                "ERROR: This shouldn't happened, wrong read type was passed through -> %d\n",
+                "ERROR: This shouldn't happen, wrong read type was passed through -> %d\n",
                 read_type);
         exit(EXIT_FAILURE);
     }
+}
+
+void set_default_params(param_t *params) {
+    params->mismatch = 0;
+    params->combine = -1;
+    params->umi = -1;
+    params->paired = -1;
+    params->min_umi_len = 0;
+    params->max_5prime_crop = 0;
+    params->no_comment = -1;
 }

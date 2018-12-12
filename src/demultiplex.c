@@ -12,22 +12,23 @@
  * 
  */
 
-#include "sabre.h"
+#include "demultiplex.h"
 
 void* demult_runner(void *arg)
 {
 
-    kseq_t fqrec1;
-    kseq_t fqrec2;
+    kseq_t *fqrec1;
+    kseq_t *fqrec2;
+    barcode_data_t *curr;
 
     int l1, l2;
-    thread_data_t* thread_data = (thread_data*)arg;
+    thread_data_t* thread_data = (thread_data_t*)arg;
     int my_line_num;
 
-    fqrec1 = kseq_init(thread_data->fq1_fd);
+    fqrec1 = kseq_init(thread_data->params->fq1_fd);
 
-    if(thread_data->paired > 0) {
-        fqrec2 = kseq_init(thread_data->fq2_fd);
+    if(thread_data->params->paired > 0) {
+        fqrec2 = kseq_init(thread_data->params->fq2_fd);
     }
 
     /* Get reads, one at a time */
@@ -64,7 +65,7 @@ void* demult_runner(void *arg)
         fq_size += 2;//two spaces
         fq_size += 1000;//test
 
-        if(paired > 0 || combine > 0) {
+        if(thread_data->params->paired > 0 || thread_data->params->combine > 0) {
             l2 = kseq_read(fqrec2);
             if (l2 < 0) {
                 fprintf (stderr, "\n\
@@ -79,15 +80,15 @@ void* demult_runner(void *arg)
         }
 
         /* Step 1: Find matching barcode */
-        thread_data->curr = head;
-        while(thread_data->curr) {
-            n_crop = chk_bc_mtch(thread_data->curr->bc, fqrec1->seq.s, thread_data->params->mismatch, thread_data->params->max_5prime_crop);
+        curr = thread_data->curr;
+        while(curr) {
+            n_crop = chk_bc_mtch(curr->bc, fqrec1->seq.s, thread_data->params->mismatch, thread_data->params->max_5prime_crop);
             if(n_crop >= 0) {
                 //found matching barcode
-                actl_bc = strndup( (fqrec1->seq.s)+n_crop, strlen(thread_data->curr->bc) );
+                actl_bc = strndup( (fqrec1->seq.s)+n_crop, strlen(curr->bc) );
                 break;
             }
-            thread_data->curr = thread_data->curr->next;
+            curr = thread_data->curr->next;
         }
 
         // unlock reading
@@ -107,11 +108,11 @@ void* demult_runner(void *arg)
 
         char *umi_idx = NULL;
 
-        if(thread_data->curr != NULL) {
+        if(curr != NULL) {
             //for now assume barcode and umi are in R1 read
             if(thread_data->params->umi > 0) {
 
-                const char *actl_umi_idx = (fqrec1->seq.s)+strlen(thread_data->curr->bc)+n_crop;
+                const char *actl_umi_idx = (fqrec1->seq.s)+strlen(curr->bc)+n_crop;
 
                 if(strlen(actl_umi_idx) < thread_data->params->min_umi_len) {
 			//protect by mutex umis_2_short_file
@@ -120,7 +121,7 @@ void* demult_runner(void *arg)
                 }
                 else {
                    umi_idx = strdup(actl_umi_idx);
-                   umi_idx[min_umi_len] = '\0';
+                   umi_idx[thread_data->params->min_umi_len] = '\0';
                    fq_size += strlen(umi_idx);
                 }
             }
@@ -131,7 +132,7 @@ void* demult_runner(void *arg)
 
                 get_merged_fqread(&fqread1, fqrec1, fqrec2, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
 			//protect by mutex umis_2_short_file
-                gzwrite(thread_data->curr->bcfile1, fqread1, strlen(fqread1));
+                gzwrite(curr->bcfile1, fqread1, strlen(fqread1));
             }
             else {
                 fqread1 = (char*) malloc(fq_size + 1);
@@ -141,16 +142,16 @@ void* demult_runner(void *arg)
                 fqread2[0] = '\0';
 
                 get_fqread(&fqread1, fqrec1, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
-                gzwrite(thread_data->curr->bcfile1, fqread1, strlen(fqread1));
+                gzwrite(curr->bcfile1, fqread1, strlen(fqread1));
 
                 if(thread_data->params->paired > 0) {
                     get_fqread(&fqread2, fqrec1, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
                     //fprintf(curr->bcfile2, "%s", fqread2);
-                    gzwrite(thread_data_.curr->bcfile2, fqread2, strlen(fqread2));
-                    *thread_data->curr->num_records += 1;
+                    gzwrite(curr->bcfile2, fqread2, strlen(fqread2));
+                    curr->num_records += 1;
                 }
             }
-            *thread_data->curr->num_records += 1;
+            curr->num_records += 1;
         }
         else {
             fqread1 = (char*) malloc(fq_size + 1);
@@ -160,17 +161,17 @@ void* demult_runner(void *arg)
             fqread2[0] = '\0';
 
             get_fqread(&fqread1, fqrec1, NULL, NULL, thread_data->params->no_comment, 0);
-            gzwrite(thread_data->unassigned1_fd, fqread1, strlen(fqread1));
-            *metrics->num_unknown += 1;
+            gzwrite(thread_data->params->unassigned1_fd, fqread1, strlen(fqread1));
+            thread_data->metrics->num_unknown += 1;
 
-            if(paired > 0) {
-                get_fqread(&fqread2, thread_data->fqrec2, NULL, NULL, no_comment, 0);
-                gzwrite(thread_data->unassigned1_fd, fqread2, strlen(fqread2));
-                *metrics->num_unknown += 1;
+            if(thread_data->params->paired > 0) {
+                get_fqread(&fqread2, fqrec2, NULL, NULL, thread_data->params->no_comment, 0);
+                gzwrite(thread_data->params->unassigned2_fd, fqread2, strlen(fqread2));
+                thread_data->metrics->num_unknown += 1;
             }
         }
 
-        *metrics->total += 2;
+        thread_data->metrics->total += 2;
 
         // unlock writing
         pthread_mutex_unlock(thread_data->out_lock);
@@ -181,7 +182,7 @@ void* demult_runner(void *arg)
         free(umi_idx);
     }
 
-    free(data);
+    free(thread_data);
 
     return NULL;
 }
