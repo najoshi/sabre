@@ -234,3 +234,11 @@ void set_default_params(param_t *params) {
     params->max_5prime_crop = 0;
     params->no_comment = -1;
 }
+
+void params_destroy(param_t *params) {
+    gzclose(params->fq1_fd);
+    gzclose(params->fq2_fd);
+    gzclose(params->unassigned1_fd);
+    gzclose(params->unassigned2_fd);
+    fclose(params->umis_2_short_fd);
+}

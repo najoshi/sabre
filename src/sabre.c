@@ -1,4 +1,7 @@
 #include "sabre.h"
+#include "utils.h"
+#include "usage.h"
+#include "demultiplex.h"
 
 int main(int argc, char *argv[]) {
 
@@ -21,8 +24,6 @@ int main(int argc, char *argv[]) {
         {"help", optional_argument, NULL, 'h'},
         {"story", optional_argument, NULL, 'o'},
         //{"quiet", no_argument, 0, 'z'},
-        {GETOPT_HELP_OPTION_DECL},
-        {GETOPT_VERSION_OPTION_DECL},
         {NULL, 0, NULL, 0}
     };
 
@@ -39,9 +40,6 @@ int main(int argc, char *argv[]) {
     start = time(NULL);
 
     FILE* barfile = NULL;
-
-    gzFile unassigned1_fd=NULL;
-    gzFile unassigned2_fd=NULL;
 
     char *unassigned1_fn=strdup("unassigned_R1.fq.gz");
     char *unassigned2_fn=strdup("unassigned_R2.fq.gz");
@@ -73,13 +71,13 @@ int main(int argc, char *argv[]) {
             if (paired_long_options[option_index].flag != 0) break;
 
             case 'f':
-            fq1 = (char*) malloc (strlen (optarg) + 1);
-            strcpy (fq1, optarg);
+            fq1_fn = (char*) malloc (strlen (optarg) + 1);
+            strcpy (fq1_fn, optarg);
             break;
 
             case 'r':
-            fq2 = (char*) malloc (strlen (optarg) + 1);
-            strcpy (fq2, optarg);
+            fq2_fn = (char*) malloc (strlen (optarg) + 1);
+            strcpy (fq2_fn, optarg);
             break;
 
             case 'b':
@@ -152,8 +150,6 @@ int main(int argc, char *argv[]) {
             little_story(EXIT_SUCCESS);
             break;
 
-            case_GETOPT_VERSION_CHAR(PROGRAM_NAME, VERSION_MAJOR, AUTHORS);
-
             case '?':
             usage(EXIT_FAILURE);
             break;
@@ -171,7 +167,7 @@ int main(int argc, char *argv[]) {
     params.umis_2_short_fd = fopen(umis_2_short_fn, "a");
 
     // ? where does this goes?
-    fprintf(umis_2_short_file, "name\tumi\tlen\tmin_len\n");
+    fprintf(params.umis_2_short_fd, "name\tumi\tlen\tmin_len\n");
 
     //TODO plugin sanity_chk here
     
@@ -225,7 +221,7 @@ int main(int argc, char *argv[]) {
         //curr->bcfile1 = popen(_mkdir(bcout_fn1), "wb");
         // popen returns file handler
 
-        if(paired > 0 && combine < 0) {
+        if(params.paired > 0 && params.combine < 0) {
             bcout_fn2 = (char *) malloc(MAX_FILENAME_LENGTH*2);
             bcout_fn2[0] = '\0';
             get_bc_fn(&bcout_fn2, s_name, curr->bc, 2);
@@ -241,11 +237,11 @@ int main(int argc, char *argv[]) {
     free(bcout_fn1);
     free(bcout_fn2);
     free(barfn);
-    //free(fq1_fn);
-    //free(fq2_fn);
-    //free(unassigned1_fn);
-    //free(unassigned2_fn);
-    //free(umis_2_short_fn);
+    free(fq1_fn);
+    free(fq2_fn);
+    free(unassigned1_fn);
+    free(unassigned2_fn);
+    free(umis_2_short_fn);
 
     // Threading
     pthread_t tid[threads];
@@ -259,12 +255,12 @@ int main(int argc, char *argv[]) {
     pthread_mutex_init(&out_lock, NULL);
     pthread_cond_init(&cv, NULL);
 
-    thread_data_t threads_data[threads];
+    thread_data_t thread_data[threads];
 
     for(int i=0; i < threads; i++) {
 
 	thread_data->params = &params;
-	thread_data->barcode_data = &curr;
+	thread_data->curr = &curr;
 	thread_data->metrics = &metrics;
         thread_data->id = i;
         thread_data->in_lock = &in_lock;
@@ -272,13 +268,8 @@ int main(int argc, char *argv[]) {
         thread_data->line_num = &line_num;
         thread_data->out_line_num = &out_line_num;
         thread_data->cv = &cv;
-        thread_data->fqrec1 = kseq_init(fq1_fd);
 
-        if(paired > 0) {
-            thread_data->fqrec2 = kseq_init(fq2_fd);
-        }
-
-        pthread_create(&(tid[i]), NULL, &demult_runner, arg);
+        pthread_create(&(tid[i]), NULL, &demult_runner, thread_data);
     }
 
     for(int i=0; i < threads; i++) {
@@ -312,10 +303,10 @@ int main(int argc, char *argv[]) {
     }
 
     int unknown_pairs = metrics.num_unknown/2;
-    float percent_unknown = (float) metrics.unknown_pairs/total_pairs;
+    float percent_unknown = (float) unknown_pairs/total_pairs;
     float tot_chk = (float) total_pairs/total_pairs;
 
-    fprintf(log_file, "unassigned\t%d\t%d\t%.2f\n", num_unknown, unknown_pairs, percent_unknown);
+    fprintf(log_file, "unassigned\t%d\t%d\t%.2f\n", metrics.num_unknown, unknown_pairs, percent_unknown);
     fprintf(log_file, "total\t%d\t%d\t%.2f\n", metrics.total, total_pairs, tot_chk);
 
     end = time(NULL);
@@ -324,15 +315,11 @@ int main(int argc, char *argv[]) {
                      difftime(end, start)/60);
 
     // good read :)
-    little_sotry(EXIT_SUCCESS);
+    little_story(EXIT_SUCCESS);
 
-    gzclose(fq1_fd);
-    gzclose(fq2_fd);
-    gzclose(unassigned1_fd);
-    gzclose(unassigned2_fd);
     fclose(barfile);
     fclose(log_file);
-    fclose(umis_2_short_file);
+    params_destroy(&params);
 
     free(log_fn);
 
