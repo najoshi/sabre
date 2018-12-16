@@ -3,14 +3,14 @@ VERSION = 1.00
 CC = gcc
 INCL = kseq.h sabre.h
 #SRC = demulti_paired.c demulti_single.c sabre.c utils.c
-SRC = demulti_paired.c sabre.c utils.c
+SRC = sabre.c usage.c demultiplex.c utils.c
 OBJ = $(SRC:.c=.o)
 DSRC=src
 
 CFLAGS = -Wall -O2 -std=c99 -pedantic -DVERSION=$(VERSION)
 CFLAGSDEV = -Wall -O0 -ggdb -std=c99 -pedantic -DVERSION=$(VERSION)
 
-LDFLAGS = -lz
+LDFLAGS = -lz -lpthread
 GPROF = -pg
 EXE = sabre
 
@@ -23,8 +23,9 @@ default: build
 %.o: %.c
 	$(CC) -c $(CFLAGS) $(SRC)
 
-demulti_single.o: kseq.h sabre.h
-demulti_paired.o: kseq.h sabre.h
+usage.o: usage.h sabre.h kseq.h
+utils.o: utils.h sabre.h kseq.h
+demultiplex.o: demultiplex.h utils.h sabre.h kseq.h
 sabre.o: sabre.h
 
 build: $(OBJ)

@@ -106,7 +106,7 @@ int chk_bc_mtch(const char *orig_bc, const char *orig_read, size_t mismatch, int
 
 // https://stackoverflow.com/questions/21880730/c-what-is-the-best-and-fastest-way-to-concatenate-strings
 //TODO this is a fastq mystrcat function, that returns a pointer to the end of the string
-void get_fqread(char **fqread, kseq_t *fqrec, char *barcode, char *umi_idx, int no_comment, int n_crop) {
+void get_fqread(char **fqread, fq_rec_t *fq_rec, char *barcode, char *umi_idx, int no_comment, int n_crop) {
 
     if(n_crop < 0) {
         fprintf(stderr,
@@ -118,7 +118,7 @@ void get_fqread(char **fqread, kseq_t *fqrec, char *barcode, char *umi_idx, int 
     //@READNAME:BACRCODE:UMI
     //1st line
     strcat(*fqread, "@");
-    strcat(*fqread, fqrec->name.s);
+    strcat(*fqread, fq_rec->name);
     //TODO later can have conditional here depending on the the structure and/or BARCODE/UMI
     if(barcode) {
         strcat(*fqread, ":");
@@ -133,36 +133,36 @@ void get_fqread(char **fqread, kseq_t *fqrec, char *barcode, char *umi_idx, int 
         strcat(*fqread, umi_idx);
     }
 
-    if(fqrec->comment.l && no_comment == -1) {
+    if(fq_rec->comment && no_comment == -1) {
         strcat(*fqread, " ");
-        strcat(*fqread, fqrec->comment.s);
+        strcat(*fqread, fq_rec->comment);
     }
     strcat(*fqread, "\n");
 
     //2nd line
-    strcat(*fqread, (fqrec->seq.s)+strlen(barcode)+n_crop);
+    strcat(*fqread, (fq_rec->seq)+strlen(barcode)+n_crop);
     strcat(*fqread, "\n");
 
     //3rd line
     strcat(*fqread, "+");
-    strcat(*fqread, fqrec->name.s);
-    if(fqrec->comment.l && no_comment == -1) {
+    strcat(*fqread, fq_rec->name);
+    if(fq_rec->comment && no_comment == -1) {
         strcat(*fqread, " ");
-        strcat(*fqread, fqrec->comment.s);
+        strcat(*fqread, fq_rec->comment);
     }
     strcat(*fqread, "\n");
 
     //4th line
-    strcat(*fqread, (fqrec->qual.s)+strlen(barcode)+n_crop);
+    strcat(*fqread, (fq_rec->qual)+strlen(barcode)+n_crop);
     strcat(*fqread, "\n");
 }
 
-void get_merged_fqread(char **fqread, kseq_t *fqrec1, kseq_t *fqrec2, char *barcode, char *umi_idx, int no_comment, int n_crop) {
+void get_merged_fqread(char **fqread, fq_rec_t *fq_rec1, fq_rec_t *fq_rec2, char *barcode, char *umi_idx, int no_comment, int n_crop) {
 
     //@READNAME:BACRCODE:UMI
     //1st line
     strcat(*fqread, "@");
-    strcat(*fqread, fqrec1->name.s);
+    strcat(*fqread, fq_rec1->name);
     //TODO later can have conditional here depending on the the structure and/or BARCODE/UMI
     if(barcode) {
         strcat(*fqread, ":");
@@ -174,27 +174,27 @@ void get_merged_fqread(char **fqread, kseq_t *fqrec1, kseq_t *fqrec2, char *barc
         strcat(*fqread, umi_idx);
     }
 
-    if(fqrec1->comment.l && no_comment == -1) {
+    if(fq_rec1->comment && no_comment == -1) {
         strcat(*fqread, " ");
-        strcat(*fqread, fqrec1->comment.s);
+        strcat(*fqread, fq_rec1->comment);
     }
     strcat(*fqread, "\n");
 
     //2nd line
-    strcat(*fqread, fqrec2->seq.s);
+    strcat(*fqread, fq_rec2->seq);
     strcat(*fqread, "\n");
 
     //3rd line
     strcat(*fqread, "+");
-    strcat(*fqread, fqrec2->name.s);
-    if(fqrec2->comment.l && no_comment == -1) {
+    strcat(*fqread, fq_rec2->name);
+    if(fq_rec2->comment && no_comment == -1) {
         strcat(*fqread, " ");
-        strcat(*fqread, fqrec2->comment.s);
+        strcat(*fqread, fq_rec2->comment);
     }
     strcat(*fqread, "\n");
 
     //4th line
-    strcat(*fqread, (fqrec2->qual.s));
+    strcat(*fqread, (fq_rec2->qual));
     strcat(*fqread, "\n");
 }
 

@@ -14,9 +14,6 @@
 #include <pthread.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include "kseq.h"
-
-KSEQ_INIT(gzFile, gzread)
 
 #ifndef PROGRAM_NAME
 #define PROGRAM_NAME "sabre"
@@ -29,12 +26,10 @@ KSEQ_INIT(gzFile, gzread)
                  \n"
 #endif
 
-#ifndef VERSION
 //https://semver.org/
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 3
 #define VERSION_PATCH 1
-#endif
 
 #define MAX_BARCODE_LENGTH 100
 #define MAX_FILENAME_LENGTH 200
@@ -57,8 +52,8 @@ typedef struct listel_p {
 } barcode_data_t;
 
 typedef struct {
-    gzFile fq1_fd; //gzFile is file descriptor - fd //https://en.wikipedia.org/wiki/File_descriptor
-    gzFile fq2_fd;
+    fq_read_t *fq1_read;
+    fq_read_t *fq2_read;
     gzFile unassigned1_fd; 
     gzFile unassigned2_fd; 
     FILE* umis_2_short_fd;

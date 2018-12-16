@@ -39,7 +39,14 @@ int main(int argc, char *argv[]) {
     time_t start, end;
     start = time(NULL);
 
+    gzFile fq1_fd;
+    gzFile fq2_fd;
+
+    char *fq1_fn=NULL;
+    char *fq2_fn=NULL;
+
     FILE* barfile = NULL;
+    char *barfn=NULL;
 
     char *unassigned1_fn=strdup("unassigned_R1.fq.gz");
     char *unassigned2_fn=strdup("unassigned_R2.fq.gz");
@@ -49,11 +56,8 @@ int main(int argc, char *argv[]) {
     int optc;
     extern char *optarg;
 
-    char *fq1_fn=NULL;
-    char *fq2_fn=NULL;
     char *log_fn=NULL;
 
-    char *barfn=NULL;
     char s_name[MAX_FILENAME_LENGTH];
     barcode_data_t *curr, *head, *temp;
     char barcode [MAX_BARCODE_LENGTH];
@@ -150,7 +154,7 @@ int main(int argc, char *argv[]) {
             little_story(EXIT_SUCCESS);
             break;
 
-            case '?':
+            case '*':
             usage(EXIT_FAILURE);
             break;
 
@@ -159,9 +163,11 @@ int main(int argc, char *argv[]) {
             break;
         }
     }
+    // TODO check that what's requre if not run usage
 
     params.fq1_fd = gzopen(fq1_fn, "r");
     params.fq2_fd = gzopen(fq2_fn, "r");
+
     params.unassigned1_fd = gzopen(unassigned1_fn, "wb");
     params.unassigned2_fd = gzopen(unassigned1_fn, "wb");
     params.umis_2_short_fd = fopen(umis_2_short_fn, "a");
@@ -260,7 +266,7 @@ int main(int argc, char *argv[]) {
     for(int i=0; i < threads; i++) {
 
 	thread_data->params = &params;
-	thread_data->curr = &curr;
+	thread_data->curr = curr;
 	thread_data->metrics = &metrics;
         thread_data->id = i;
         thread_data->in_lock = &in_lock;
