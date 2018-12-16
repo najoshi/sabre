@@ -1,5 +1,5 @@
-#ifndef _FASTQ_H
-#define _FASTQ_H
+#ifndef FASTQ_H
+#define FASTQ_H
 
 #include "sabre.h"
 
@@ -11,10 +11,9 @@ typedef struct {
     char seq[LINE_SIZE];
     char other[LINE_SIZE];
     char qual[LINE_SIZE];
-    char *r2;
 } fq_rec_t;
 
 int get_line(gzFile fq_fd, char *line, int buff);
-int get_fq_read(fq_rec_t *fq_rec, gzFile fq_fd);
+int get_fq_rec(fq_rec_t *fq_rec, gzFile fq_fd);
 
-#endif /*_FASTQ_H*/
+#endif /*FASTQ_H*/

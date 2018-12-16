@@ -52,8 +52,8 @@ typedef struct listel_p {
 } barcode_data_t;
 
 typedef struct {
-    fq_read_t *fq1_read;
-    fq_read_t *fq2_read;
+    gzFile fq1_fd;
+    gzFile fq2_fd;
     gzFile unassigned1_fd; 
     gzFile unassigned2_fd; 
     FILE* umis_2_short_fd;

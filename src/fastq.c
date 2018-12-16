@@ -30,9 +30,9 @@ int get_fq_rec(fq_rec_t *fq_rec, gzFile fq_fd) {
     char *ptr = strchr(fq_rec->name,' ');
     if (ptr) {
         *ptr='\0';
-     read->comment = ptr+1;
+     fq_rec->comment = ptr+1;
     } else {
-	read->comment = NULL;
+	fq_rec->comment = NULL;
     }
     // before writing it out check that comment isn't null
 

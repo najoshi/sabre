@@ -1,9 +1,9 @@
 # Source, Executable, Includes, Library Defines
 VERSION = 1.00
 CC = gcc
-INCL = kseq.h sabre.h
+INCL = fastq.h sabre.h
 #SRC = demulti_paired.c demulti_single.c sabre.c utils.c
-SRC = sabre.c usage.c demultiplex.c utils.c
+SRC = sabre.c usage.c demultiplex.c utils.c fastq.c
 OBJ = $(SRC:.c=.o)
 DSRC=src
 
@@ -23,9 +23,9 @@ default: build
 %.o: %.c
 	$(CC) -c $(CFLAGS) $(SRC)
 
-usage.o: usage.h sabre.h kseq.h
-utils.o: utils.h sabre.h kseq.h
-demultiplex.o: demultiplex.h utils.h sabre.h kseq.h
+usage.o: usage.h sabre.h fastq.h
+utils.o: utils.h sabre.h fastq.h
+demultiplex.o: demultiplex.h utils.h sabre.h fastq.h
 sabre.o: sabre.h
 
 build: $(OBJ)

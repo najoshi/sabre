@@ -37,14 +37,14 @@ void* demult_runner(void *arg)
 
 	//this is equivalent to if(false), which means this block
 	//is always skipped, unless when there is an error/end of the file
-        if(get_read(fq_rec1, thread_data->params->fq1_fd)) {
+        if(get_fq_rec(fq_rec1, thread_data->params->fq1_fd)) {
 	    // sanity check no more reads
             pthread_mutex_unlock(thread_data->in_lock);
 	    break;	
 	}
 
         if(thread_data->params->paired > 0) {
-            if(get_read(fq_rec2, thread_data->params->fq2_fd)) {
+            if(get_fq_rec(fq_rec2, thread_data->params->fq2_fd)) {
 		//error out there becuase if reached the end of the file
 		//then we should hit first break, above, since the assumptions
 		//that the files of equal length. If issues with R2 only this is an error

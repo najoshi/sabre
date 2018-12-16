@@ -39,9 +39,6 @@ int main(int argc, char *argv[]) {
     time_t start, end;
     start = time(NULL);
 
-    gzFile fq1_fd;
-    gzFile fq2_fd;
-
     char *fq1_fn=NULL;
     char *fq2_fn=NULL;
 
