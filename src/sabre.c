@@ -55,10 +55,7 @@ int main(int argc, char *argv[]) {
     int optc;
     extern char *optarg;
 
-
-    char s_name[MAX_FILENAME_LENGTH];
     barcode_data_t *curr, *head, *temp;
-    char barcode [MAX_BARCODE_LENGTH];
 
     int threads=4;
 
@@ -210,6 +207,7 @@ int main(int argc, char *argv[]) {
                      \n      --threads %d\
                      \n\
                      \n  In Progess...\
+		     \n\
                      \n", PROGRAM_NAME,\
                      fq1_fn, fq2_fn,\
                      bc_fn,\
@@ -227,26 +225,40 @@ int main(int argc, char *argv[]) {
     bc_fd = fopen(bc_fn, "r");
     head = NULL;
     curr = NULL; 
-    while (fscanf (bc_fd, "%s\t%s", barcode, s_name) != EOF) {
+
+    char line_buff[1024];
+    while(fgets(line_buff, 1024, bc_fd)) {
         curr = (barcode_data_t*) malloc(sizeof(barcode_data_t));
-        curr->bc = (char*) malloc(strlen(barcode) + 1);
-        strcpy(curr->bc, barcode);
+
+        char *p = strtok(line_buff, "\t");
+	char *s_name = strdup(p);
+
+        p = strtok(NULL, "\t");
+	curr->bc_grp = strdup(p);
 
         bcout_fn1 = (char *) malloc(MAX_FILENAME_LENGTH*2);
         bcout_fn1[0] = '\0';
-        get_bc_fn(&bcout_fn1, s_name, curr->bc, 1);
-        //curr->bcfile1 = fopen (_mkdir(bcout_fn1), "w");
+        get_bc_fn(&bcout_fn1, s_name, curr->bc_grp, 1);
         curr->bcfile1 = gzopen(_mkdir(bcout_fn1), "wb");
-        //curr->bcfile1 = popen(_mkdir(bcout_fn1), "wb");
-        // popen returns file handler
 
         if(params.paired > 0 && params.combine < 0) {
             bcout_fn2 = (char *) malloc(MAX_FILENAME_LENGTH*2);
             bcout_fn2[0] = '\0';
-            get_bc_fn(&bcout_fn2, s_name, curr->bc, 2);
-            //curr->bcfile2 = fopen (_mkdir(bcout_fn2), "w");
+            get_bc_fn(&bcout_fn2, s_name, curr->bc_grp, 2);
             curr->bcfile2 = gzopen(_mkdir(bcout_fn2), "wb");
         }
+
+	//TODO for hardcode max limit of items in the barcodes file to 6
+	curr->bc = calloc(6, sizeof(void*));
+
+	int i=0;
+        while(i<5 && (p = strtok(NULL, "\t\n"))) {
+	// remove the token, new line char	
+	    curr->bc[i] = strdup(p);
+	    fprintf(stdout, "  BC %s ", curr->bc[i]);
+	    i++;
+	}
+	fprintf(stdout, "\n");
 
         curr->num_records = 0;
         curr->next = head;
@@ -261,7 +273,6 @@ int main(int argc, char *argv[]) {
     free(unassigned1_fn);
     free(unassigned2_fn);
     free(umis_2_short_fn);
-
 
     // Threading
     pthread_t tid[threads];
@@ -317,7 +328,7 @@ int main(int argc, char *argv[]) {
         int n_pairs = curr->num_records/2;
         float percent_pairs = (float) n_pairs/total_pairs;
 
-        fprintf (log_file,"%s\t%d\t%d\t%.2f\n", curr->bc, curr->num_records, n_pairs, percent_pairs);
+        fprintf (log_file,"%s\t%d\t%d\t%.2f\n", curr->bc_grp, curr->num_records, n_pairs, percent_pairs);
 
         curr = curr->next;
     }
@@ -348,6 +359,7 @@ int main(int argc, char *argv[]) {
         gzclose(curr->bcfile1);
         gzclose(curr->bcfile2);
 
+        free (curr->bc_grp);
         free (curr->bc);
         temp = curr;
         curr = curr->next;

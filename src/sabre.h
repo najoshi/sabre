@@ -44,10 +44,11 @@ typedef struct actl_bc_cnt {
 
 typedef struct listel_p {
 	//TODO this is future implementation
-	// this is a pointer to an array of pointers
 	//char **bc;
 	//typedef struct barcode_t *b
-	char *bc;
+	// this is a pointer to an array of pointers
+	char **bc;
+	char *bc_grp;
 	int num_records;
 	gzFile bcfile1;
 	gzFile bcfile2;

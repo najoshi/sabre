@@ -54,11 +54,9 @@ const char * _mkdir(const char *file_path) {
 //strcmp can be used for sorting, returns pos, zero, neg
 //BUT this new implementation can't be used as such just FYI 
 int chk_bc_mtch(const char *orig_bc, const char *orig_read, size_t mismatch, int max_5prime_crop) {
-
     int orig_read_len = strlen(orig_read);
     int orig_bc_len = strlen(orig_bc);
     int n_crop = 0;
-
     if(orig_bc_len > orig_read_len) {
         fprintf (stderr,
                 "WARNING: Length of the barcode %d is greater than length of the reads %d.",
@@ -81,6 +79,8 @@ int chk_bc_mtch(const char *orig_bc, const char *orig_read, size_t mismatch, int
         while (bc_len-- > 0) {
             u1 = *bc++;
             u2 = *read++;
+
+	    //fprintf(stdout, "BC %s READ %s\n", u1, u2);
 
             if (u1 != u2) {
                 cnt++;

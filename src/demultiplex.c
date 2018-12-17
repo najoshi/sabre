@@ -51,9 +51,10 @@ void* demult_runner(void *arg)
     fq_rec2 = (fq_rec_t*) malloc(sizeof(fq_rec_t));
 
     barcode_data_t *curr;
+    curr = NULL;
 
     thread_data_t* thread_data = (thread_data_t*)arg;
-    int my_line_num;
+    //int my_line_num;
 
     /* Get reads, one at a time */
 
@@ -87,32 +88,40 @@ void* demult_runner(void *arg)
         }
 
         // unlock reading
-        my_line_num = *(thread_data->line_num);
-        *thread_data->line_num += 1;
+	// TODO this bit of code for ordered fastq files, implement later?
+        //my_line_num = *(thread_data->line_num);
+        //*thread_data->line_num += 1;
         pthread_mutex_unlock(thread_data->in_lock);
 
         int n_crop = 0;
 
         char *actl_bc = NULL;
-        //char actl_bc[MAX_BARCODE_LENGTH];
-	//actl_bc[0] = '\0';
 
         /* Step 1: Find matching barcode */
+        int got_match = 0;
         curr = thread_data->curr;
         while(curr) {
-            n_crop = chk_bc_mtch(curr->bc, fq_rec1->seq, thread_data->params->mismatch, thread_data->params->max_5prime_crop);
-            if(n_crop >= 0) {
-                //found matching barcode
-                actl_bc = strndup( (fq_rec1->seq)+n_crop, strlen(curr->bc) );
-                break;
-            }
+
+            if(got_match) {
+	        break; 
+	    }
+
+            for (int i=0; curr->bc[i]; i++) {
+                n_crop = chk_bc_mtch(curr->bc[i], fq_rec1->seq, thread_data->params->mismatch, thread_data->params->max_5prime_crop);
+                if(n_crop >= 0) {
+                    //found matching barcode
+                    actl_bc = strndup( (fq_rec1->seq)+n_crop, strlen(curr->bc[i]) );
+                    got_match = 1;
+                }
+
+	    }
             curr = curr->next;
         }
 
-        //fprintf(stdout, "HERE %s %s %s \n", fq_rec1->name, fq_rec1->seq, fq_rec1->qual);
         /* Step 2: Write read out into barcode specific file */
-
-        //// lock writing
+        //TODO this bit of code to keep fastq files ordered as per original fastq files
+	//which I don't think that needed? at least not at this stage
+        // lock writing
         //while(*(thread_data->out_line_num) != my_line_num) {
         //    pthread_cond_wait(thread_data->cv, thread_data->out_lock);
         //}
@@ -126,12 +135,10 @@ void* demult_runner(void *arg)
             //for now assume barcode and umi are in R1 read
             if(thread_data->params->umi > 0) {
 
-                const char *actl_umi_idx = (fq_rec1->seq)+strlen(curr->bc)+n_crop;
+                const char *actl_umi_idx = (fq_rec1->seq)+strlen(actl_bc)+n_crop;
 
                 if(strlen(actl_umi_idx) < thread_data->params->min_umi_len) {
-	        	//protect by mutex umis_2_short_file
                     pthread_mutex_lock(thread_data->out_lock);
-                    fprintf(stdout, "%s\t%s\t%zu\t%d\n", fq_rec1->name, actl_umi_idx, strlen(actl_umi_idx), thread_data->params->min_umi_len);
                     fprintf(thread_data->params->umis_2_short_fd, "%s\t%s\t%zu\t%d\n", fq_rec1->name, actl_umi_idx, strlen(actl_umi_idx), thread_data->params->min_umi_len);
                     pthread_mutex_unlock(thread_data->out_lock);
                     continue;
@@ -206,6 +213,24 @@ void* demult_runner(void *arg)
 
     }
 
+    if(strlen(fq_read1_buff) > 0) {
+        pthread_mutex_lock(thread_data->out_lock);
+        gzwrite(curr->bcfile1, fq_read1_buff, strlen(fq_read1_buff));
+        if(thread_data->params->paired > 0) {
+            gzwrite(curr->bcfile2, fq_read2_buff, strlen(fq_read2_buff));
+        }
+        pthread_mutex_unlock(thread_data->out_lock);
+    }
+    if(strlen(fq_read1_unass_buff) > 0) {
+        pthread_mutex_lock(thread_data->out_lock);
+        gzwrite(thread_data->params->unassigned1_fd, fq_read1_unass_buff, strlen(fq_read1_unass_buff));
+        if(thread_data->params->paired > 0) {
+            gzwrite(thread_data->params->unassigned2_fd, fq_read2_unass_buff, strlen(fq_read2_unass_buff));
+        }
+        pthread_mutex_unlock(thread_data->out_lock);
+    }
+    //TODO need to print out very last buffer here
+    //
     //free(actl_bc);
     free(fq_read1_buff);
     free(fq_read2_buff);
