@@ -42,18 +42,19 @@ int main(int argc, char *argv[]) {
     char *fq1_fn=NULL;
     char *fq2_fn=NULL;
 
-    FILE* barfile = NULL;
-    char *barfn=NULL;
+    FILE* bc_fd;
+    char *bc_fn=NULL;
 
     char *unassigned1_fn=strdup("unassigned_R1.fq.gz");
     char *unassigned2_fn=strdup("unassigned_R2.fq.gz");
     char *umis_2_short_fn=strdup("umis_too_short.txt");
 
     FILE* log_file=NULL;
+    char *log_fn=strdup("stats.txt");
+
     int optc;
     extern char *optarg;
 
-    char *log_fn=NULL;
 
     char s_name[MAX_FILENAME_LENGTH];
     barcode_data_t *curr, *head, *temp;
@@ -82,8 +83,8 @@ int main(int argc, char *argv[]) {
             break;
 
             case 'b':
-            barfn = (char*) malloc (strlen (optarg) + 1);
-            strcpy (barfn, optarg);
+            bc_fn = (char*) malloc (strlen (optarg) + 1);
+            strcpy (bc_fn, optarg);
             break;
 
             case 'z':
@@ -144,7 +145,7 @@ int main(int argc, char *argv[]) {
 	    //is printed it wasn't intended by user (or at least we don't know that)
 	    //and therefore exit code - fail
             case 'h':
-            version(EXIT_SUCCESS);
+            usage(EXIT_SUCCESS);
             break;
 
             case 'o':
@@ -160,10 +161,23 @@ int main(int argc, char *argv[]) {
             break;
         }
     }
+    
     // TODO check that what's requre if not run usage
-
+    
     params.fq1_fd = gzopen(fq1_fn, "r");
     params.fq2_fd = gzopen(fq2_fn, "r");
+
+    params.fq1_fd = gzopen(fq1_fn, "r");
+    if(!params.fq1_fd) {
+        fprintf(stderr, "ERROR: Could not open input file R1 '%s'.\n", fq1_fn);
+        exit(EXIT_FAILURE);
+    }
+
+    params.fq2_fd = gzopen(fq2_fn, "r");
+    if(!params.fq2_fd) {
+        fprintf(stderr, "ERROR: Could not open input file R2 '%s'.\n", fq2_fn);
+        exit(EXIT_FAILURE);
+    }
 
     params.unassigned1_fd = gzopen(unassigned1_fn, "wb");
     params.unassigned2_fd = gzopen(unassigned1_fn, "wb");
@@ -198,7 +212,7 @@ int main(int argc, char *argv[]) {
                      \n  In Progess...\
                      \n", PROGRAM_NAME,\
                      fq1_fn, fq2_fn,\
-                     barfn,\
+                     bc_fn,\
                      unassigned1_fn, unassigned2_fn,\
                      params.combine, params.umi,\
                      params.mismatch, params.min_umi_len,
@@ -210,8 +224,10 @@ int main(int argc, char *argv[]) {
     /* Creating linked list of barcode data */
     // https://www.hackerearth.com/practice/data-structures/linked-list/singly-linked-list/tutorial/
     // where each node is represents one barcode from the barcode file
+    bc_fd = fopen(bc_fn, "r");
     head = NULL;
-    while (fscanf (barfile, "%s%s", barcode, s_name) != EOF) {
+    curr = NULL; 
+    while (fscanf (bc_fd, "%s\t%s", barcode, s_name) != EOF) {
         curr = (barcode_data_t*) malloc(sizeof(barcode_data_t));
         curr->bc = (char*) malloc(strlen(barcode) + 1);
         strcpy(curr->bc, barcode);
@@ -239,12 +255,13 @@ int main(int argc, char *argv[]) {
 
     free(bcout_fn1);
     free(bcout_fn2);
-    free(barfn);
+    free(bc_fn);
     free(fq1_fn);
     free(fq2_fn);
     free(unassigned1_fn);
     free(unassigned2_fn);
     free(umis_2_short_fn);
+
 
     // Threading
     pthread_t tid[threads];
@@ -262,17 +279,17 @@ int main(int argc, char *argv[]) {
 
     for(int i=0; i < threads; i++) {
 
-	thread_data->params = &params;
-	thread_data->curr = curr;
-	thread_data->metrics = &metrics;
-        thread_data->id = i;
-        thread_data->in_lock = &in_lock;
-        thread_data->out_lock = &out_lock;
-        thread_data->line_num = &line_num;
-        thread_data->out_line_num = &out_line_num;
-        thread_data->cv = &cv;
+	thread_data[i].params = &params;
+	thread_data[i].curr = curr;
+	thread_data[i].metrics = &metrics;
+        thread_data[i].id = i;
+        thread_data[i].in_lock = &in_lock;
+        thread_data[i].out_lock = &out_lock;
+        thread_data[i].line_num = &line_num;
+        thread_data[i].out_line_num = &out_line_num;
+        thread_data[i].cv = &cv;
 
-        pthread_create(&(tid[i]), NULL, &demult_runner, thread_data);
+        pthread_create(&(tid[i]), NULL, &demult_runner, thread_data+i);
     }
 
     for(int i=0; i < threads; i++) {
@@ -320,7 +337,7 @@ int main(int argc, char *argv[]) {
     // good read :)
     little_story(EXIT_SUCCESS);
 
-    fclose(barfile);
+    fclose(bc_fd);
     fclose(log_file);
     params_destroy(&params);
 

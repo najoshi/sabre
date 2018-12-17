@@ -17,21 +17,32 @@
 void* demult_runner(void *arg)
 {
 
+    char fqread1[MAX_READ_SIZE];
+    char fqread2[MAX_READ_SIZE];
+
+    fqread1[0] = '\0';
+    fqread2[0] = '\0';
+
+    char *fq_read_buff;
+    fq_read_buff = (char*) malloc(MAX_READ_BUFFER);
+    fq_read_buff[0] = '\0';
+    int buff_cnt = 0;
+
     fq_rec_t *fq_rec1;
     fq_rec_t *fq_rec2;
 
     fq_rec1 = (fq_rec_t*) malloc(sizeof(fq_rec_t));
-    fq_rec1 = (fq_rec_t*) malloc(sizeof(fq_rec_t));
+    fq_rec2 = (fq_rec_t*) malloc(sizeof(fq_rec_t));
 
     barcode_data_t *curr;
 
     thread_data_t* thread_data = (thread_data_t*)arg;
     int my_line_num;
 
-
     /* Get reads, one at a time */
 
     while(1) {
+
         // lock reading
         pthread_mutex_lock(thread_data->in_lock);
 
@@ -54,7 +65,6 @@ void* demult_runner(void *arg)
                                   \n %s\
                                   \n",
                                   fq_rec1->name);
-	        //should this be an error?  
 	        pthread_mutex_unlock(thread_data->in_lock);
 	        exit(1);	
 	    }
@@ -68,25 +78,8 @@ void* demult_runner(void *arg)
         int n_crop = 0;
 
         char *actl_bc = NULL;
-
-        char *fqread1 = NULL;
-        char *fqread2 = NULL;
-
-        size_t fq_size = 0;
-
-        fq_size += strlen(fq_rec1->seq);
-        fq_size += (strlen(fq_rec1->name)*2);
-        fq_size += strlen(fq_rec1->qual);
-        fq_size += (strlen(fq_rec1->comment)*2);
-        fq_size += 2;// header signs @ and +
-        fq_size += 2;//two colons (:)
-        fq_size += 4;//cariage returns
-        fq_size += 2;//two spaces
-        fq_size += 1000;//test
-
-        if(thread_data->params->combine > 0) {
-            fq_size += strlen(fq_rec2->seq);
-        }
+        //char actl_bc[MAX_BARCODE_LENGTH];
+	//actl_bc[0] = '\0';
 
         /* Step 1: Find matching barcode */
         curr = thread_data->curr;
@@ -97,18 +90,23 @@ void* demult_runner(void *arg)
                 actl_bc = strndup( (fq_rec1->seq)+n_crop, strlen(curr->bc) );
                 break;
             }
+	    //else {
+	    //    fprintf(stdout, "GOTCHA %s \n", actl_bc);
+	    //    exit(1);
+	    //}
             curr = curr->next;
         }
 
+        //fprintf(stdout, "HERE %s %s %s \n", fq_rec1->name, fq_rec1->seq, fq_rec1->qual);
         /* Step 2: Write read out into barcode specific file */
 
-        // lock writing
-        while(*(thread_data->out_line_num) != my_line_num) {
-            pthread_cond_wait(thread_data->cv, thread_data->out_lock);
-        }
-        *thread_data->out_line_num += 1;
+        //// lock writing
+        //while(*(thread_data->out_line_num) != my_line_num) {
+        //    pthread_cond_wait(thread_data->cv, thread_data->out_lock);
+        //}
+        //*thread_data->out_line_num += 1;
 
-        pthread_cond_broadcast(thread_data->cv);  // Tell everyone it might be their turn!
+        //pthread_cond_broadcast(thread_data->cv);  // Tell everyone it might be their turn!
 
         char *umi_idx = NULL;
 
@@ -119,73 +117,94 @@ void* demult_runner(void *arg)
                 const char *actl_umi_idx = (fq_rec1->seq)+strlen(curr->bc)+n_crop;
 
                 if(strlen(actl_umi_idx) < thread_data->params->min_umi_len) {
-			//protect by mutex umis_2_short_file
-                    fprintf(thread_data->params->umis_2_short_fd, "%s\t%s\t%zu\t%d\n", fq_rec1->name, actl_umi_idx, strlen(actl_umi_idx), thread_data->params->min_umi_len);
+	        	//protect by mutex umis_2_short_file
+                    pthread_mutex_lock(thread_data->out_lock);
+                    fprintf(stdout, "%s\t%s\t%zu\t%d\n", fq_rec1->name, actl_umi_idx, strlen(actl_umi_idx), thread_data->params->min_umi_len);
+                    pthread_mutex_unlock(thread_data->out_lock);
+                    //fprintf(thread_data->params->umis_2_short_fd, "%s\t%s\t%zu\t%d\n", fq_rec1->name, actl_umi_idx, strlen(actl_umi_idx), thread_data->params->min_umi_len);
                     continue;
                 }
                 else {
                    umi_idx = strdup(actl_umi_idx);
                    umi_idx[thread_data->params->min_umi_len] = '\0';
-                   fq_size += strlen(umi_idx);
                 }
             }
 
-            if(thread_data->params->combine > 0) {
-                fqread1 = (char*) malloc(fq_size);
-                fqread1[0] = '\0';
+            if(thread_data->params->combine > 0 && actl_bc != NULL) {
+                //fqread1 = (char*) malloc(fq_size);
+                //fqread1[0] = '\0';
 
-                get_merged_fqread(&fqread1, fq_rec1, fq_rec2, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
+                get_merged_fqread(fqread1, fq_rec1, fq_rec2, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
 			//protect by mutex umis_2_short_file
+                //pthread_mutex_lock(thread_data->out_lock);
+		////fprintf(stdout, "%s", fqread1);
+                //gzwrite(curr->bcfile1, fqread1, strlen(fqread1));
+                //pthread_mutex_unlock(thread_data->out_lock);
+                strcat(fq_read_buff, fqread1);
+		buff_cnt++;
+            }
+	    if(buff_cnt > MAX_READ_NUMBER-1) {
+                pthread_mutex_lock(thread_data->out_lock);
                 gzwrite(curr->bcfile1, fqread1, strlen(fqread1));
-            }
-            else {
-                fqread1 = (char*) malloc(fq_size + 1);
-                fqread2 = (char*) malloc(fq_size + 1);
-
-                fqread1[0] = '\0';
-                fqread2[0] = '\0';
-
-                get_fqread(&fqread1, fq_rec1, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
-                gzwrite(curr->bcfile1, fqread1, strlen(fqread1));
-
-                if(thread_data->params->paired > 0) {
-                    get_fqread(&fqread2, fq_rec1, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
-                    //fprintf(curr->bcfile2, "%s", fqread2);
-                    gzwrite(curr->bcfile2, fqread2, strlen(fqread2));
-                    curr->num_records += 1;
-                }
-            }
-            curr->num_records += 1;
-        }
-        else {
-            fqread1 = (char*) malloc(fq_size + 1);
-            fqread2 = (char*) malloc(fq_size + 1);
-
-            fqread1[0] = '\0';
-            fqread2[0] = '\0';
-
-            get_fqread(&fqread1, fq_rec1, NULL, NULL, thread_data->params->no_comment, 0);
-            gzwrite(thread_data->params->unassigned1_fd, fqread1, strlen(fqread1));
-            thread_data->metrics->num_unknown += 1;
-
-            if(thread_data->params->paired > 0) {
-                get_fqread(&fqread2, fq_rec2, NULL, NULL, thread_data->params->no_comment, 0);
-                gzwrite(thread_data->params->unassigned2_fd, fqread2, strlen(fqread2));
-                thread_data->metrics->num_unknown += 1;
-            }
+		fq_read_buff[0] = '\0';
+		buff_cnt = 0;
+                pthread_mutex_unlock(thread_data->out_lock);
+	    
+	    }
+//            else {
+//                fqread1 = (char*) malloc(fq_size + 1);
+//                fqread2 = (char*) malloc(fq_size + 1);
+//
+//                fqread1[0] = '\0';
+//                fqread2[0] = '\0';
+//
+//                get_fqread(&fqread1, fq_rec1, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
+//                pthread_mutex_lock(thread_data->out_lock);
+//                gzwrite(curr->bcfile1, fqread1, strlen(fqread1));
+//                pthread_mutex_unlock(thread_data->out_lock);
+//
+//                if(thread_data->params->paired > 0) {
+//                    get_fqread(&fqread2, fq_rec1, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
+//                    //fprintf(curr->bcfile2, "%s", fqread2);
+//                    pthread_mutex_lock(thread_data->out_lock);
+//                    gzwrite(curr->bcfile2, fqread2, strlen(fqread2));
+//                    curr->num_records += 1;
+//                    pthread_mutex_unlock(thread_data->out_lock);
+//                }
+//            }
+//            curr->num_records += 1;
+//        }
+//        else {
+//            fqread1 = (char*) malloc(fq_size + 1);
+//            fqread2 = (char*) malloc(fq_size + 1);
+//
+//            fqread1[0] = '\0';
+//            fqread2[0] = '\0';
+//
+//            get_fqread(&fqread1, fq_rec1, NULL, NULL, thread_data->params->no_comment, 0);
+//            pthread_mutex_lock(thread_data->out_lock);
+//            gzwrite(thread_data->params->unassigned1_fd, fqread1, strlen(fqread1));
+//            thread_data->metrics->num_unknown += 1;
+//            pthread_mutex_unlock(thread_data->out_lock);
+//
+//            if(thread_data->params->paired > 0) {
+//                get_fqread(&fqread2, fq_rec2, NULL, NULL, thread_data->params->no_comment, 0);
+//                pthread_mutex_lock(thread_data->out_lock);
+//                gzwrite(thread_data->params->unassigned2_fd, fqread2, strlen(fqread2));
+//                thread_data->metrics->num_unknown += 1;
+//                pthread_mutex_unlock(thread_data->out_lock);
+//            }
         }
 
         thread_data->metrics->total += 2;
 
         // unlock writing
-        pthread_mutex_unlock(thread_data->out_lock);
+        //pthread_mutex_unlock(thread_data->out_lock);
 
-        free(fqread1);
-        free(fqread2);
-        free(actl_bc);
-        free(umi_idx);
     }
 
+    //free(actl_bc);
+    free(fq_read_buff);
     free(thread_data);
 
     return NULL;

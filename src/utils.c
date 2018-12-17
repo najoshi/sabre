@@ -157,45 +157,45 @@ void get_fqread(char **fqread, fq_rec_t *fq_rec, char *barcode, char *umi_idx, i
     strcat(*fqread, "\n");
 }
 
-void get_merged_fqread(char **fqread, fq_rec_t *fq_rec1, fq_rec_t *fq_rec2, char *barcode, char *umi_idx, int no_comment, int n_crop) {
-
+void get_merged_fqread(char *fqread, fq_rec_t *fq_rec1, fq_rec_t *fq_rec2, char *barcode, char *umi_idx, int no_comment, int n_crop) {
+     fqread[0] = '\0';
     //@READNAME:BACRCODE:UMI
     //1st line
-    strcat(*fqread, "@");
-    strcat(*fqread, fq_rec1->name);
+    strcat(fqread, fq_rec1->name);
     //TODO later can have conditional here depending on the the structure and/or BARCODE/UMI
     if(barcode) {
-        strcat(*fqread, ":");
-        strcat(*fqread, barcode);
+        strcat(fqread, ":");
+        strcat(fqread, barcode);
     }
 
     if(umi_idx) {
-        strcat(*fqread, ":");
-        strcat(*fqread, umi_idx);
+        strcat(fqread, ":");
+        strcat(fqread, umi_idx);
     }
 
     if(fq_rec1->comment && no_comment == -1) {
-        strcat(*fqread, " ");
-        strcat(*fqread, fq_rec1->comment);
+        strcat(fqread, " ");
+        strcat(fqread, fq_rec1->comment);
     }
-    strcat(*fqread, "\n");
+    strcat(fqread, "\n");
 
     //2nd line
-    strcat(*fqread, fq_rec2->seq);
-    strcat(*fqread, "\n");
+    strcat(fqread, fq_rec2->seq);
+    strcat(fqread, "\n");
 
     //3rd line
-    strcat(*fqread, "+");
-    strcat(*fqread, fq_rec2->name);
-    if(fq_rec2->comment && no_comment == -1) {
-        strcat(*fqread, " ");
-        strcat(*fqread, fq_rec2->comment);
-    }
-    strcat(*fqread, "\n");
+    strcat(fqread, "+");
+    strcat(fqread, "");
+    //strcat(fqread, fq_rec2->name);
+    //if(fq_rec2->comment && no_comment == -1) {
+    //    strcat(fqread, " ");
+    //    strcat(fqread, fq_rec2->comment);
+    //}
+    strcat(fqread, "\n");
 
     //4th line
-    strcat(*fqread, (fq_rec2->qual));
-    strcat(*fqread, "\n");
+    strcat(fqread, (fq_rec2->qual));
+    strcat(fqread, "\n");
 }
 
 void get_bc_fn(char **bcout_fn, char *s_name, char *barcode, int read_type) {
