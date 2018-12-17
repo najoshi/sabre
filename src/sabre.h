@@ -43,13 +43,23 @@ typedef struct actl_bc_cnt {
 } actl_bc_cnt;
 
 typedef struct listel_p {
-	char* bc;
+	//TODO this is future implementation
+	// this is a pointer to an array of pointers
+	//char **bc;
+	//typedef struct barcode_t *b
+	char *bc;
 	int num_records;
 	gzFile bcfile1;
 	gzFile bcfile2;
         struct actl_bc_cnt *actl_bc_cnt;
 	struct listel_p *next;
 } barcode_data_t;
+
+//TODO this is for future implementation
+//typdef strcut {
+//  char *bc;
+//  barcode_data_t *bacrcode_data;
+//} barcode_t
 
 typedef struct {
     gzFile fq1_fd;
