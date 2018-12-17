@@ -102,19 +102,21 @@ void* demult_runner(void *arg)
         curr = thread_data->curr;
         while(curr) {
 
-            if(got_match) {
-	        break; 
-	    }
-
             for (int i=0; curr->bc[i]; i++) {
                 n_crop = chk_bc_mtch(curr->bc[i], fq_rec1->seq, thread_data->params->mismatch, thread_data->params->max_5prime_crop);
                 if(n_crop >= 0) {
                     //found matching barcode
                     actl_bc = strndup( (fq_rec1->seq)+n_crop, strlen(curr->bc[i]) );
                     got_match = 1;
+		    break;
                 }
 
 	    }
+
+            if(got_match) {
+	        break; 
+	    }
+
             curr = curr->next;
         }
 
