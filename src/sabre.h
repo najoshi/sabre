@@ -50,8 +50,8 @@ typedef struct listel_p {
 	char **bc;
 	char *bc_grp;
 	int num_records;
-	gzFile bcfile1;
-	gzFile bcfile2;
+	FILE* bcfile1;
+	FILE* bcfile2;
         struct actl_bc_cnt *actl_bc_cnt;
 	struct listel_p *next;
 } barcode_data_t;
@@ -65,8 +65,8 @@ typedef struct listel_p {
 typedef struct {
     gzFile fq1_fd;
     gzFile fq2_fd;
-    gzFile unassigned1_fd; 
-    gzFile unassigned2_fd; 
+    FILE* unassigned1_fd;
+    FILE* unassigned2_fd;
     FILE* umis_2_short_fd;
     int mismatch;
     int combine;
@@ -84,7 +84,7 @@ typedef struct {
 
 typedef struct {
     int id;
-    const param_t* params;	
+    const param_t* params;
     barcode_data_t* curr;
     metrics_t* metrics;
     pthread_mutex_t *in_lock, *out_lock;

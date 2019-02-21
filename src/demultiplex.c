@@ -6,10 +6,10 @@
  *
  */
 
-/* 
+/*
  * sabre FASTQ files demultiplexing
  * demultiplex.c: FASTQ demultiplexing
- * 
+ *
  */
 
 #include "demultiplex.h"
@@ -22,27 +22,6 @@ void* demult_runner(void *arg)
 
     fqread1[0] = '\0';
     fqread2[0] = '\0';
-
-    char *fq_read1_buff;
-    fq_read1_buff = (char*) malloc(MAX_READ_BUFFER);
-
-    char *fq_read2_buff;
-    fq_read2_buff = (char*) malloc(MAX_READ_BUFFER);
-
-    fq_read1_buff[0] = '\0';
-    fq_read2_buff[0] = '\0';
-
-    char *fq_read1_unass_buff;
-    fq_read1_unass_buff = (char*) malloc(MAX_READ_BUFFER);
-
-    char *fq_read2_unass_buff;
-    fq_read2_unass_buff = (char*) malloc(MAX_READ_BUFFER);
-
-    fq_read1_unass_buff[0] = '\0';
-    fq_read2_unass_buff[0] = '\0';
-
-    int buff_cnt = 0;
-    int buff_unass_cnt = 0;
 
     fq_rec_t *fq_rec1;
     fq_rec_t *fq_rec2;
@@ -68,7 +47,7 @@ void* demult_runner(void *arg)
         if(get_fq_rec(fq_rec1, thread_data->params->fq1_fd)) {
 	    // sanity check no more reads
             pthread_mutex_unlock(thread_data->in_lock);
-	    break;	
+	    break;
 	}
 
         if(thread_data->params->paired > 0) {
@@ -83,7 +62,7 @@ void* demult_runner(void *arg)
                                   \n",
                                   fq_rec1->name);
 	        pthread_mutex_unlock(thread_data->in_lock);
-	        exit(1);	
+	        exit(1);
 	    }
         }
 
@@ -114,7 +93,7 @@ void* demult_runner(void *arg)
 	    }
 
             if(got_match) {
-	        break; 
+	        break;
 	    }
 
             curr = curr->next;
@@ -153,90 +132,61 @@ void* demult_runner(void *arg)
 
             if(thread_data->params->combine > 0 && actl_bc != NULL) {
                 get_merged_fqread(fqread1, fq_rec1, fq_rec2, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
-                strcat(fq_read1_buff, fqread1);
-		buff_cnt++;
+
+                pthread_mutex_lock(thread_data->out_lock);
+                fprintf(curr->bcfile1, fqread1);
+                pthread_mutex_unlock(thread_data->out_lock);
+
             }
             else {
                 get_fqread(fqread1, fq_rec1, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
-                strcat(fq_read1_buff, fqread1);
-		buff_cnt++;
+
+                pthread_mutex_lock(thread_data->out_lock);
+                fprintf(curr->bcfile1, fqread1);
+                pthread_mutex_unlock(thread_data->out_lock);
 
                 if(thread_data->params->paired > 0) {
                     get_fqread(fqread2, fq_rec1, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
-                    strcat(fq_read2_buff, fqread2);
+
+                    pthread_mutex_lock(thread_data->out_lock);
+                    fprintf(curr->bcfile2, fqread2);
+                    pthread_mutex_unlock(thread_data->out_lock);
+
 		    //dont need to increment buff_cnt, assuming fq_read1 keeps the right count
                     curr->num_records += 1;
                 }
             }
             curr->num_records += 1;
 
-	    if(buff_cnt > MAX_READ_NUMBER-1) {
-                pthread_mutex_lock(thread_data->out_lock);
-                gzwrite(curr->bcfile1, fq_read1_buff, strlen(fq_read1_buff));
-		fq_read1_buff[0] = '\0';
-		buff_cnt = 0;
-                if(thread_data->params->paired > 0) {
-                    gzwrite(curr->bcfile2, fq_read2_buff, strlen(fq_read2_buff));
-		    fq_read1_buff[0] = '\0';
-		}
-                pthread_mutex_unlock(thread_data->out_lock);
-	    }
         }
         else {
 
             get_fqread(fqread1, fq_rec1, NULL, NULL, thread_data->params->no_comment, 0);
-            strcat(fq_read1_unass_buff, fqread1);
+
+            pthread_mutex_lock(thread_data->out_lock);
+            fprintf(thread_data->params->unassigned1_fd, fqread1);
+            pthread_mutex_unlock(thread_data->out_lock);
+
             thread_data->metrics->num_unknown += 1;
-            buff_unass_cnt++;
 
             if(thread_data->params->paired > 0) {
                 get_fqread(fqread2, fq_rec2, NULL, NULL, thread_data->params->no_comment, 0);
-                strcat(fq_read2_unass_buff, fqread2);
+
+                pthread_mutex_lock(thread_data->out_lock);
+                fprintf(thread_data->params->unassigned2_fd, fqread2);
+                pthread_mutex_unlock(thread_data->out_lock);
+
                 thread_data->metrics->num_unknown += 1;
             }
 
-	    if(buff_unass_cnt > MAX_READ_NUMBER-1) {
-                pthread_mutex_lock(thread_data->out_lock);
-                gzwrite(thread_data->params->unassigned1_fd, fq_read1_unass_buff, strlen(fq_read1_unass_buff));
-		fq_read1_unass_buff[0] = '\0';
-		buff_unass_cnt = 0;
-                if(thread_data->params->paired > 0) {
-                    gzwrite(thread_data->params->unassigned2_fd, fq_read2_unass_buff, strlen(fq_read2_unass_buff));
-		    fq_read2_unass_buff[0] = '\0';
-		}
-                pthread_mutex_unlock(thread_data->out_lock);
-	    }
         }
 
         thread_data->metrics->total += 2;
 
-        // unlock writing
-        //pthread_mutex_unlock(thread_data->out_lock);
-
     }
 
-    if(strlen(fq_read1_buff) > 0) {
-        pthread_mutex_lock(thread_data->out_lock);
-        gzwrite(curr->bcfile1, fq_read1_buff, strlen(fq_read1_buff));
-        if(thread_data->params->paired > 0) {
-            gzwrite(curr->bcfile2, fq_read2_buff, strlen(fq_read2_buff));
-        }
-        pthread_mutex_unlock(thread_data->out_lock);
-    }
-    if(strlen(fq_read1_unass_buff) > 0) {
-        pthread_mutex_lock(thread_data->out_lock);
-        gzwrite(thread_data->params->unassigned1_fd, fq_read1_unass_buff, strlen(fq_read1_unass_buff));
-        if(thread_data->params->paired > 0) {
-            gzwrite(thread_data->params->unassigned2_fd, fq_read2_unass_buff, strlen(fq_read2_unass_buff));
-        }
-        pthread_mutex_unlock(thread_data->out_lock);
-    }
-    //TODO need to print out very last buffer here
-    //
-    //free(actl_bc);
-    free(fq_read1_buff);
-    free(fq_read2_buff);
+    free(fq_rec1);
+    free(fq_rec2);
     free(thread_data);
-
     return NULL;
 }

@@ -31,7 +31,7 @@ const char * _mkdir(const char *file_path) {
     const char *dir = dirname(dirc);
     snprintf(tmp, sizeof(tmp),"%s", dir);
     len = strlen(tmp);
-    
+
     if(tmp[len - 1] == '/') {
         tmp[len - 1] = 0;
     }
@@ -52,7 +52,7 @@ const char * _mkdir(const char *file_path) {
 
 //NOTE retuns zero on success
 //strcmp can be used for sorting, returns pos, zero, neg
-//BUT this new implementation can't be used as such just FYI 
+//BUT this new implementation can't be used as such just FYI
 int chk_bc_mtch(const char *orig_bc, const char *orig_read, size_t mismatch, int max_5prime_crop) {
     int orig_read_len = strlen(orig_read);
     int orig_bc_len = strlen(orig_bc);
@@ -213,10 +213,10 @@ void get_bc_fn(char **bcout_fn, char *s_name, char *barcode, int read_type) {
     strcat(*bcout_fn, barcode);
 
     if(read_type == 1) {
-        strcat(*bcout_fn, "_R1.fastq.gz");
+        strcat(*bcout_fn, "_R1.fastq");
     }
     else if(read_type == 2) {
-        strcat(*bcout_fn, "_R2.fastq.gz");
+        strcat(*bcout_fn, "_R2.fastq");
     }
     else {
         fprintf (stderr,
@@ -239,7 +239,7 @@ void set_default_params(param_t *params) {
 void params_destroy(param_t *params) {
     gzclose(params->fq1_fd);
     gzclose(params->fq2_fd);
-    gzclose(params->unassigned1_fd);
-    gzclose(params->unassigned2_fd);
+    fclose(params->unassigned1_fd);
+    fclose(params->unassigned2_fd);
     fclose(params->umis_2_short_fd);
 }

@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
         {NULL, 0, NULL, 0}
     };
 
-    // this is on the stack so no need to malloc 
+    // this is on the stack so no need to malloc
     // stack gets cleaned when function exits,
     // because of that no need to free either
     param_t params;
@@ -45,8 +45,8 @@ int main(int argc, char *argv[]) {
     FILE* bc_fd;
     char *bc_fn=NULL;
 
-    char *unassigned1_fn=strdup("unassigned_R1.fq.gz");
-    char *unassigned2_fn=strdup("unassigned_R2.fq.gz");
+    char *unassigned1_fn=strdup("unassigned_R1.fq");
+    char *unassigned2_fn=strdup("unassigned_R2.fq");
     char *umis_2_short_fn=strdup("umis_too_short.txt");
 
     FILE* log_file=NULL;
@@ -158,11 +158,8 @@ int main(int argc, char *argv[]) {
             break;
         }
     }
-    
+
     // TODO check that what's requre if not run usage
-    
-    params.fq1_fd = gzopen(fq1_fn, "r");
-    params.fq2_fd = gzopen(fq2_fn, "r");
 
     params.fq1_fd = gzopen(fq1_fn, "r");
     if(!params.fq1_fd) {
@@ -176,15 +173,15 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    params.unassigned1_fd = gzopen(unassigned1_fn, "wb");
-    params.unassigned2_fd = gzopen(unassigned1_fn, "wb");
+    params.unassigned1_fd = fopen(unassigned1_fn, "wb");
+    params.unassigned2_fd = fopen(unassigned2_fn, "wb");
     params.umis_2_short_fd = fopen(umis_2_short_fn, "a");
 
     // ? where does this goes?
     fprintf(params.umis_2_short_fd, "name\tumi\tlen\tmin_len\n");
 
     //TODO plugin sanity_chk here
-    
+
     if(params.fq2_fd) {
         params.paired = 1;
     }
@@ -224,7 +221,7 @@ int main(int argc, char *argv[]) {
     // where each node is represents one barcode from the barcode file
     bc_fd = fopen(bc_fn, "r");
     head = NULL;
-    curr = NULL; 
+    curr = NULL;
 
     char line_buff[1024];
     int max_items = 6;
@@ -240,13 +237,13 @@ int main(int argc, char *argv[]) {
         bcout_fn1 = (char *) malloc(MAX_FILENAME_LENGTH*2);
         bcout_fn1[0] = '\0';
         get_bc_fn(&bcout_fn1, s_name, curr->bc_grp, 1);
-        curr->bcfile1 = gzopen(_mkdir(bcout_fn1), "wb");
+        curr->bcfile1 = fopen(_mkdir(bcout_fn1), "wb");
 
         if(params.paired > 0 && params.combine < 0) {
             bcout_fn2 = (char *) malloc(MAX_FILENAME_LENGTH*2);
             bcout_fn2[0] = '\0';
             get_bc_fn(&bcout_fn2, s_name, curr->bc_grp, 2);
-            curr->bcfile2 = gzopen(_mkdir(bcout_fn2), "wb");
+            curr->bcfile2 = fopen(_mkdir(bcout_fn2), "wb");
         }
 
 	//TODO for hardcode max limit of items in the barcodes file to 6
@@ -254,7 +251,7 @@ int main(int argc, char *argv[]) {
 
 	int i=0;
         while(i <= max_items && (p = strtok(NULL, "\t\n"))) {
-	    // remove the token, new line char	
+	    // remove the token, new line char
 	    curr->bc[i] = strdup(p);
 	    fprintf(stdout, "  BC %s ", curr->bc[i]);
 	    i++;
@@ -329,8 +326,7 @@ int main(int argc, char *argv[]) {
         int n_pairs = curr->num_records/2;
         float percent_pairs = (float) n_pairs/total_pairs;
 
-        //fprintf (log_file,"%s\t%d\t%d\t%.2f\n", curr->bc_grp, curr->num_records, n_pairs, percent_pairs);
-        fprintf (stdout,"%s\t%d\t%d\t%.2f\n", curr->bc_grp, curr->num_records, n_pairs, percent_pairs);
+        fprintf(log_file,"%s\t%d\t%d\t%.2f\n", curr->bc_grp, curr->num_records, n_pairs, percent_pairs);
 
         curr = curr->next;
     }
@@ -358,8 +354,8 @@ int main(int argc, char *argv[]) {
 
     curr = head;
     while (curr) {
-        gzclose(curr->bcfile1);
-        gzclose(curr->bcfile2);
+        fclose(curr->bcfile1);
+        fclose(curr->bcfile2);
 
         free (curr->bc_grp);
         free (curr->bc);
@@ -367,6 +363,8 @@ int main(int argc, char *argv[]) {
         curr = curr->next;
         free (temp);
     }
+
+    free(curr);
 
     return EXIT_SUCCESS;
 }
