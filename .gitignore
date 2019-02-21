@@ -6,4 +6,5 @@ sabre-dev
 metrics
 # ignore vim swap files
 *.swp
-
+*.gz
+/tmp

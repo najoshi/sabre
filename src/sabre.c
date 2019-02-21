@@ -227,6 +227,7 @@ int main(int argc, char *argv[]) {
     curr = NULL; 
 
     char line_buff[1024];
+    int max_items = 6;
     while(fgets(line_buff, 1024, bc_fd)) {
         curr = (barcode_data_t*) malloc(sizeof(barcode_data_t));
 
@@ -249,11 +250,11 @@ int main(int argc, char *argv[]) {
         }
 
 	//TODO for hardcode max limit of items in the barcodes file to 6
-	curr->bc = calloc(6, sizeof(void*));
+	curr->bc = calloc(max_items, sizeof(void*));
 
 	int i=0;
-        while(i<5 && (p = strtok(NULL, "\t\n"))) {
-	// remove the token, new line char	
+        while(i <= max_items && (p = strtok(NULL, "\t\n"))) {
+	    // remove the token, new line char	
 	    curr->bc[i] = strdup(p);
 	    fprintf(stdout, "  BC %s ", curr->bc[i]);
 	    i++;
@@ -328,7 +329,8 @@ int main(int argc, char *argv[]) {
         int n_pairs = curr->num_records/2;
         float percent_pairs = (float) n_pairs/total_pairs;
 
-        fprintf (log_file,"%s\t%d\t%d\t%.2f\n", curr->bc_grp, curr->num_records, n_pairs, percent_pairs);
+        //fprintf (log_file,"%s\t%d\t%d\t%.2f\n", curr->bc_grp, curr->num_records, n_pairs, percent_pairs);
+        fprintf (stdout,"%s\t%d\t%d\t%.2f\n", curr->bc_grp, curr->num_records, n_pairs, percent_pairs);
 
         curr = curr->next;
     }
