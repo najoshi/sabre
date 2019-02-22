@@ -28,13 +28,20 @@ int get_fq_rec(fq_rec_t *fq_rec, gzFile fq_fd) {
     done = done || get_line(fq_fd, fq_rec->other, LINE_SIZE);
     done = done || get_line(fq_fd, fq_rec->qual, LINE_SIZE);
     char *ptr = strchr(fq_rec->name,' ');
-    if (ptr) {
+    if(ptr) {
         *ptr='\0';
-     fq_rec->comment = ptr+1;
+        fq_rec->comment = ptr+1;
     } else {
 	fq_rec->comment = NULL;
     }
     // before writing it out check that comment isn't null
 
     return done;
+}
+
+void init_fq_rec(fq_rec_t *fq_rec) {
+    fq_rec->name[0] = '\0';
+    fq_rec->seq[0] = '\0';
+    fq_rec->other[0] = '\0';
+    fq_rec->qual[0] = '\0';
 }

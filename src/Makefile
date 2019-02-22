@@ -1,5 +1,6 @@
 # Source, Executable, Includes, Library Defines
 VERSION = 1.00
+VERSIONDEV = 1.00-dev
 CC = gcc
 INCL = fastq.h sabre.h
 #SRC = demulti_paired.c demulti_single.c sabre.c utils.c
@@ -8,7 +9,7 @@ OBJ = $(SRC:.c=.o)
 DSRC=src
 
 CFLAGS = -Wall -O2 -std=c99 -pedantic -DVERSION=$(VERSION)
-CFLAGSDEV = -Wall -O0 -ggdb -std=c99 -pedantic -DVERSION=$(VERSION)
+CFLAGSDEV = -Wall -O0 -g -std=c99 -DVERSION=$(VERSIONDEV)
 
 LDFLAGS = -lz -lpthread
 GPROF = -pg
@@ -32,8 +33,8 @@ build: $(OBJ)
 	$(CC) $(CFLAGS) $(OBJ) -o $(EXE) $(LDFLAGS)
 	#ln -sf $(DSRC)/$(EXE) ..
 
-dev: $(OBJ)
-	$(CC) $(CFLAGSDEV) $(OBJ) -o $(EXE)-dev $(LDFLAGS)
+dev: $(OBJDEV)
+	$(CC) $(CFLAGSDEV) $(SRC) -o $(EXE)-dev $(LDFLAGS)
 
 metrics:
 	$(CC) $(CFLAGSDEV) -o metrics metrics.c $(LDFLAGS)

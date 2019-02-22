@@ -14,8 +14,7 @@
 
 #include "demultiplex.h"
 
-void* demult_runner(void *arg)
-{
+void* demult_runner(void *arg) {
 
     char fqread1[MAX_READ_SIZE];
     char fqread2[MAX_READ_SIZE];
@@ -23,11 +22,11 @@ void* demult_runner(void *arg)
     fqread1[0] = '\0';
     fqread2[0] = '\0';
 
-    fq_rec_t *fq_rec1;
-    fq_rec_t *fq_rec2;
+    fq_rec_t *fq_rec1 = (fq_rec_t*) malloc(sizeof(fq_rec_t));
+    fq_rec_t *fq_rec2 = (fq_rec_t*) malloc(sizeof(fq_rec_t));
 
-    fq_rec1 = (fq_rec_t*) malloc(sizeof(fq_rec_t));
-    fq_rec2 = (fq_rec_t*) malloc(sizeof(fq_rec_t));
+    init_fq_rec(fq_rec1);
+    init_fq_rec(fq_rec2);
 
     barcode_data_t *curr;
     curr = NULL;
@@ -182,11 +181,11 @@ void* demult_runner(void *arg)
         }
 
         thread_data->metrics->total += 2;
-
+        free(actl_bc);
     }
 
     free(fq_rec1);
     free(fq_rec2);
-    free(thread_data);
+    //free(thread_data); according to valgrind report this line isn't needed since no errors given out..
     return NULL;
 }

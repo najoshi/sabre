@@ -34,6 +34,8 @@ int main(int argc, char *argv[]) {
     set_default_params(&params);
 
     metrics_t metrics;
+    metrics. num_unknown = 0;
+    metrics.total = 0;
 
     //clock_t begin = clock();
     time_t start, end;
@@ -49,7 +51,7 @@ int main(int argc, char *argv[]) {
     char *unassigned2_fn=strdup("unassigned_R2.fq");
     char *umis_2_short_fn=strdup("umis_too_short.txt");
 
-    FILE* log_file=NULL;
+    FILE* log_file;
     char *log_fn=strdup("stats.txt");
 
     int optc;
@@ -85,17 +87,11 @@ int main(int argc, char *argv[]) {
             break;
 
             case 'z':
-            if(unassigned1_fn) {
-                free(unassigned1_fn);
-            }
             unassigned1_fn = (char*) malloc (strlen (optarg) + 1);
             strcpy (unassigned1_fn, optarg);
             break;
 
             case 'w':
-            if(unassigned2_fn) {
-                free(unassigned2_fn);
-            }
             unassigned2_fn = (char*) malloc (strlen (optarg) + 1);
             strcpy (unassigned2_fn, optarg);
             break;
@@ -321,7 +317,7 @@ int main(int argc, char *argv[]) {
     curr = head;
     int total_pairs = metrics.total/2;
 
-    while (curr) {
+    while(curr) {
 
         int n_pairs = curr->num_records/2;
         float percent_pairs = (float) n_pairs/total_pairs;

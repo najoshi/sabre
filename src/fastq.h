@@ -13,6 +13,7 @@ typedef struct {
     char qual[LINE_SIZE];
 } fq_rec_t;
 
+void init_fq_rec(fq_rec_t *fq_rec);
 int get_line(gzFile fq_fd, char *line, int buff);
 int get_fq_rec(fq_rec_t *fq_rec, gzFile fq_fd);
 
