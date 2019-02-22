@@ -1,16 +1,16 @@
 #include "utils.h"
 
 /*
-gcc -Wall -O2 -std=c99 -o metrics metrics.c -lz
-*/
+   gcc -Wall -O2 -std=c99 -o metrics metrics.c -lz
+ */
 
 #define BARCODE_ARRAY 1000000
 
 //int chk_bc_arr(const char *arr, char *bc);
 
 /*
-  WISDOM char **arr and char *arr[] mean the same things
-  but later one more informative
+   WISDOM char **arr and char *arr[] mean the same things
+   but later one more informative
  */
 
 int chk_bc_arr(barcodes_t *arr, char *bc) {
@@ -80,13 +80,13 @@ int main (int argc, char *argv[]) {
 
     if (argc <= 2) {
         fprintf(stderr, "\n\
-			 \n  Usage:   metrics <fastq_file> <mode>\
-			 \n\
-			 \n  Options:\
-			 \n\
-			 \n           mode INT     [0|1]; 0 = sample barcode, 1 = umis barcodes\
-			 \n\
-			 \n");
+                         \n  Usage:   metrics <fastq_file> <mode>\
+                         \n\
+                         \n  Options:\
+                         \n\
+                         \n           mode INT     [0|1]; 0 = sample barcode, 1 = umis barcodes\
+                         \n\
+                         \n");
         exit (EXIT_SUCCESS);
     }
 
@@ -99,9 +99,9 @@ int main (int argc, char *argv[]) {
     fqrec1 = kseq_init(pe1);
 
     /*
-      WISDOM these tow are actually different things
-      char barcodes[BARCODE_ARRAY][BARCODE];
-      char *barcodes[];
+       WISDOM these tow are actually different things
+       char barcodes[BARCODE_ARRAY][BARCODE];
+       char *barcodes[];
      */
 
     //char **barcodes = calloc(BARCODE_ARRAY, sizeof(char*));
@@ -147,8 +147,8 @@ int main (int argc, char *argv[]) {
         qsort(barcodes, n, sizeof(barcodes_t), bc_n_cmp);
 
         /*
-          WISDOM this is to limit the right scope for i
-         */
+           WISDOM this is to limit the right scope for i
+           */
 
         int i = 0;
         while(barcodes[i].bc != 0) {

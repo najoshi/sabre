@@ -29,7 +29,7 @@ void usage(int status) {
                      \n\
                      \n        -t, --threads INT             specify number of threads to use [4]\
                      \n        -v, --version                 get current version\
-                     \n        -h, --hel                     get help menu, exit status is zero\
+                     \n        -h, --help                    get help menu, exit status is zero\
                      \n        -o, --story                   little story about sabre tool\
                      \n\
                      \n",
@@ -61,7 +61,7 @@ void version(int status) {
     fprintf(stdout, "\n\
                      \n   %s\
                      \n\
-		     \n   version: %d.%d.%d\
+                     \n   version: %d.%d.%d\
                      \n\
                      \n   Copyright (c) 2011 The Regents of University of California, Davis Campus.\
                      \n   %s is free software and comes with ABSOLUTELY NO WARRANTY.\
@@ -70,9 +70,12 @@ void version(int status) {
                      \n   Written by: %s\
                      \n\
                      \n",
-                    PROGRAM_NAME,
-		    VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH,
-		    PROGRAM_NAME, AUTHORS);
+                     PROGRAM_NAME,
+                     VERSION_MAJOR,
+                     VERSION_MINOR,
+                     VERSION_PATCH,
+                     PROGRAM_NAME,
+                     AUTHORS);
 
     exit(status);
 }

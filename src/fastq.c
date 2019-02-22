@@ -13,7 +13,7 @@ int get_line(gzFile fq_fd, char *line, int buff) {
 
     if(new_line[str_len-1] != '\n') {
         fprintf(stderr, "Line too long %d\n", buff);
-	exit(1);
+    exit(1);
     }
 
     new_line[str_len-1] = '\0';
@@ -32,7 +32,7 @@ int get_fq_rec(fq_rec_t *fq_rec, gzFile fq_fd) {
         *ptr='\0';
         fq_rec->comment = ptr+1;
     } else {
-	fq_rec->comment = NULL;
+        fq_rec->comment = NULL;
     }
     // before writing it out check that comment isn't null
 

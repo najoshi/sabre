@@ -41,32 +41,32 @@ void* demult_runner(void *arg) {
         // lock reading
         pthread_mutex_lock(thread_data->in_lock);
 
-	//this is equivalent to if(false), which means this block
-	//is always skipped, unless when there is an error/end of the file
+        //this is equivalent to if(false), which means this block
+        //is always skipped, unless when there is an error/end of the file
         if(get_fq_rec(fq_rec1, thread_data->params->fq1_fd)) {
-	    // sanity check no more reads
+            // sanity check no more reads
             pthread_mutex_unlock(thread_data->in_lock);
-	    break;
-	}
+            break;
+        }
 
         if(thread_data->params->paired > 0) {
             if(get_fq_rec(fq_rec2, thread_data->params->fq2_fd)) {
-		//error out there becuase if reached the end of the file
-		//then we should hit first break, above, since the assumptions
-		//that the files of equal length. If issues with R2 only this is an error
+                //error out there becuase if reached the end of the file
+                //then we should hit first break, above, since the assumptions
+                //that the files of equal length. If issues with R2 only this is an error
                 fprintf (stderr, "\n\
-                                  \n ERROR: R2 file shorter than R1 file.\
-                                  \n Stopping here:\
-                                  \n %s\
-                                  \n",
-                                  fq_rec1->name);
-	        pthread_mutex_unlock(thread_data->in_lock);
-	        exit(1);
-	    }
+                        \n ERROR: R2 file shorter than R1 file.\
+                        \n Stopping here:\
+                        \n %s\
+                        \n",
+                        fq_rec1->name);
+                pthread_mutex_unlock(thread_data->in_lock);
+                exit(1);
+            }
         }
 
         // unlock reading
-	// TODO this bit of code for ordered fastq files, implement later?
+        // TODO this bit of code for ordered fastq files, implement later?
         //my_line_num = *(thread_data->line_num);
         //*thread_data->line_num += 1;
         pthread_mutex_unlock(thread_data->in_lock);
@@ -86,21 +86,21 @@ void* demult_runner(void *arg) {
                     //found matching barcode
                     actl_bc = strndup( (fq_rec1->seq)+n_crop, strlen(curr->bc[i]) );
                     got_match = 1;
-		    break;
+                    break;
                 }
 
-	    }
+            }
 
             if(got_match) {
-	        break;
-	    }
+                break;
+            }
 
             curr = curr->next;
         }
 
         /* Step 2: Write read out into barcode specific file */
         //TODO this bit of code to keep fastq files ordered as per original fastq files
-	//which I don't think that needed? at least not at this stage
+        //which I don't think that needed? at least not at this stage
         // lock writing
         //while(*(thread_data->out_line_num) != my_line_num) {
         //    pthread_cond_wait(thread_data->cv, thread_data->out_lock);
@@ -124,8 +124,8 @@ void* demult_runner(void *arg) {
                     continue;
                 }
                 else {
-                   umi_idx = strdup(actl_umi_idx);
-                   umi_idx[thread_data->params->min_umi_len] = '\0';
+                    umi_idx = strdup(actl_umi_idx);
+                    umi_idx[thread_data->params->min_umi_len] = '\0';
                 }
             }
 
@@ -151,12 +151,12 @@ void* demult_runner(void *arg) {
                     fprintf(curr->bcfile2, fqread2);
                     pthread_mutex_unlock(thread_data->out_lock);
 
-		    //dont need to increment buff_cnt, assuming fq_read1 keeps the right count
+                    //dont need to increment buff_cnt, assuming fq_read1 keeps the right count
                     curr->num_records += 1;
                 }
             }
             curr->num_records += 1;
-
+            free(actl_bc);
         }
         else {
 
@@ -181,7 +181,6 @@ void* demult_runner(void *arg) {
         }
 
         thread_data->metrics->total += 2;
-        free(actl_bc);
     }
 
     free(fq_rec1);

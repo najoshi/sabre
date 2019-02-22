@@ -38,9 +38,9 @@ const char * _mkdir(const char *file_path) {
 
     for(p = tmp + 1; *p; p++) {
         if(*p == '/') {
-           *p = 0;
-           mkdir(tmp, S_IRWXU);
-           *p = '/';
+            *p = 0;
+            mkdir(tmp, S_IRWXU);
+            *p = '/';
         }
     }
 
@@ -79,8 +79,6 @@ int chk_bc_mtch(const char *orig_bc, const char *orig_read, size_t mismatch, int
         while (bc_len-- > 0) {
             u1 = *bc++;
             u2 = *read++;
-
-	    //fprintf(stdout, "BC %s READ %s\n", u1, u2);
 
             if (u1 != u2) {
                 cnt++;

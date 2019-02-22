@@ -133,10 +133,10 @@ int main(int argc, char *argv[]) {
             version(EXIT_SUCCESS);
             break;
 
-	    //NOTE if user requrested the help menu i.e --help then
-	    //return success for all other cases below while help menu
-	    //is printed it wasn't intended by user (or at least we don't know that)
-	    //and therefore exit code - fail
+            //NOTE if user requrested the help menu i.e --help then
+            //return success for all other cases below while help menu
+            //is printed it wasn't intended by user (or at least we don't know that)
+            //and therefore exit code - fail
             case 'h':
             usage(EXIT_SUCCESS);
             break;
@@ -200,7 +200,7 @@ int main(int argc, char *argv[]) {
                      \n      --threads %d\
                      \n\
                      \n  In Progess...\
-		     \n\
+                     \n\
                      \n", PROGRAM_NAME,\
                      fq1_fn, fq2_fn,\
                      bc_fn,\
@@ -225,10 +225,10 @@ int main(int argc, char *argv[]) {
         curr = (barcode_data_t*) malloc(sizeof(barcode_data_t));
 
         char *p = strtok(line_buff, "\t");
-	char *s_name = strdup(p);
+        char *s_name = strdup(p);
 
         p = strtok(NULL, "\t");
-	curr->bc_grp = strdup(p);
+        curr->bc_grp = strdup(p);
 
         bcout_fn1 = (char *) malloc(MAX_FILENAME_LENGTH*2);
         bcout_fn1[0] = '\0';
@@ -242,17 +242,17 @@ int main(int argc, char *argv[]) {
             curr->bcfile2 = fopen(_mkdir(bcout_fn2), "wb");
         }
 
-	//TODO for hardcode max limit of items in the barcodes file to 6
-	curr->bc = calloc(max_items, sizeof(void*));
+        //TODO for hardcode max limit of items in the barcodes file to 6
+        curr->bc = calloc(max_items, sizeof(void*));
 
-	int i=0;
+        int i=0;
         while(i <= max_items && (p = strtok(NULL, "\t\n"))) {
-	    // remove the token, new line char
-	    curr->bc[i] = strdup(p);
-	    fprintf(stdout, "  BC %s ", curr->bc[i]);
-	    i++;
-	}
-	fprintf(stdout, "\n");
+            // remove the token, new line char
+            curr->bc[i] = strdup(p);
+            fprintf(stdout, "  BC %s ", curr->bc[i]);
+            i++;
+        }
+        fprintf(stdout, "\n");
 
         curr->num_records = 0;
         curr->next = head;
@@ -284,9 +284,9 @@ int main(int argc, char *argv[]) {
 
     for(int i=0; i < threads; i++) {
 
-	thread_data[i].params = &params;
-	thread_data[i].curr = curr;
-	thread_data[i].metrics = &metrics;
+        thread_data[i].params = &params;
+        thread_data[i].curr = curr;
+        thread_data[i].metrics = &metrics;
         thread_data[i].id = i;
         thread_data[i].in_lock = &in_lock;
         thread_data[i].out_lock = &out_lock;
@@ -361,6 +361,5 @@ int main(int argc, char *argv[]) {
     }
 
     free(curr);
-
     return EXIT_SUCCESS;
 }

@@ -1,5 +1,5 @@
 
-void* sanity_chk(void *arg)
+void* sanity_chk(void *arg) {
     if (!fq1 || !fq2 || !unknownfn1 || !unknownfn2 || !barfn) {
         paired_usage (EXIT_FAILURE);
     }
