@@ -133,7 +133,7 @@ void* demult_runner(void *arg) {
                 get_merged_fqread(fqread1, fq_rec1, fq_rec2, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
 
                 pthread_mutex_lock(thread_data->out_lock);
-                fprintf(curr->bcfile1, fqread1);
+                fprintf(curr->bcfile1, "%s", fqread1);
                 pthread_mutex_unlock(thread_data->out_lock);
 
             }
@@ -141,14 +141,14 @@ void* demult_runner(void *arg) {
                 get_fqread(fqread1, fq_rec1, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
 
                 pthread_mutex_lock(thread_data->out_lock);
-                fprintf(curr->bcfile1, fqread1);
+                fprintf(curr->bcfile1, "%s", fqread1);
                 pthread_mutex_unlock(thread_data->out_lock);
 
                 if(thread_data->params->paired > 0) {
                     get_fqread(fqread2, fq_rec1, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
 
                     pthread_mutex_lock(thread_data->out_lock);
-                    fprintf(curr->bcfile2, fqread2);
+                    fprintf(curr->bcfile2, "%s", fqread2);
                     pthread_mutex_unlock(thread_data->out_lock);
 
                     //dont need to increment buff_cnt, assuming fq_read1 keeps the right count
@@ -163,7 +163,7 @@ void* demult_runner(void *arg) {
             get_fqread(fqread1, fq_rec1, NULL, NULL, thread_data->params->no_comment, 0);
 
             pthread_mutex_lock(thread_data->out_lock);
-            fprintf(thread_data->params->unassigned1_fd, fqread1);
+            fprintf(thread_data->params->unassigned1_fd, "%s", fqread1);
             pthread_mutex_unlock(thread_data->out_lock);
 
             thread_data->metrics->num_unknown += 1;
@@ -172,7 +172,7 @@ void* demult_runner(void *arg) {
                 get_fqread(fqread2, fq_rec2, NULL, NULL, thread_data->params->no_comment, 0);
 
                 pthread_mutex_lock(thread_data->out_lock);
-                fprintf(thread_data->params->unassigned2_fd, fqread2);
+                fprintf(thread_data->params->unassigned2_fd, "%s", fqread2);
                 pthread_mutex_unlock(thread_data->out_lock);
 
                 thread_data->metrics->num_unknown += 1;
