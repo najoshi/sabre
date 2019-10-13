@@ -1,6 +1,5 @@
 # Source, Executable, Includes, Library Defines
-VERSION = 1.00
-VERSIONDEV = 1.00-dev
+GIT_VERSION := "$(shell git describe --abbrev=7 --always --tags)"
 CC = gcc
 INCL = fastq.h sabre.h
 #SRC = demulti_paired.c demulti_single.c sabre.c utils.c
@@ -8,12 +7,14 @@ SRC = sabre.c usage.c demultiplex.c utils.c fastq.c
 OBJ = $(SRC:.c=.o)
 DSRC=src
 
-CFLAGS = -Wall -O2 -std=c99 -pedantic -DVERSION=$(VERSION)
+#CFLAGS = -Wall -O2 -std=c99 -pedantic -DVERSION=$(VERSION)
+# need to quote GIT_VERSION so that the value gets passed as a string
+CFLAGS = -Wall -O2 -std=c99 -pedantic -DVERSION=\"$(GIT_VERSION)\"
 CFLAGSDEV = -Wall -O0 -g -std=c99 -DVERSION=$(VERSIONDEV)
 
 LDFLAGS = -lz -lpthread
 GPROF = -pg
-EXE = sabre
+EXE = sabre-$(GIT_VERSION)
 
 .PHONY: default
 
@@ -31,7 +32,7 @@ sabre.o: sabre.h
 
 build: $(OBJ)
 	$(CC) $(CFLAGS) $(OBJ) -o $(EXE) $(LDFLAGS)
-	#ln -sf $(DSRC)/$(EXE) ..
+	ln -sf $(DSRC)/$(EXE) ../sabre
 
 dev: $(OBJDEV)
 	$(CC) $(CFLAGSDEV) $(SRC) -o $(EXE)-dev $(LDFLAGS)
