@@ -27,9 +27,6 @@
 #endif
 
 //https://semver.org/
-#define VERSION_MAJOR 0
-#define VERSION_MINOR 3
-#define VERSION_PATCH 1
 
 #define MAX_BARCODE_LENGTH 100
 #define MAX_FILENAME_LENGTH 200

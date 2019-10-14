@@ -61,7 +61,7 @@ void version(int status) {
     fprintf(stdout, "\n\
                      \n   %s\
                      \n\
-                     \n   version: %d.%d.%d-%s\
+                     \n   version: %s\
                      \n\
                      \n   Copyright (c) 2011 The Regents of University of California, Davis Campus.\
                      \n   %s is free software and comes with ABSOLUTELY NO WARRANTY.\
@@ -71,9 +71,6 @@ void version(int status) {
                      \n\
                      \n",
                      PROGRAM_NAME,
-                     VERSION_MAJOR,
-                     VERSION_MINOR,
-                     VERSION_PATCH,
                      VERSION,
                      PROGRAM_NAME,
                      AUTHORS);

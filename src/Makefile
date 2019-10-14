@@ -14,7 +14,7 @@ CFLAGSDEV = -Wall -O0 -g -std=c99 -DVERSION=$(VERSIONDEV)
 
 LDFLAGS = -lz -lpthread
 GPROF = -pg
-EXE = sabre-$(GIT_VERSION)
+EXE = sabre
 
 .PHONY: default
 
