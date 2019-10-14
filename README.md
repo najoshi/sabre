@@ -1,107 +1,58 @@
-> This is a fork of the [original repo](https://github.com/najoshi/sabre). I might be taking this into slightly different direction
+> This is a fork of the [original repo](https://github.com/najoshi/sabre). I might be taking this tool into a different direction to what was originally intended
 
-# sabre - A barcode demultiplexing and trimming tool for FastQ files
+# sabre
 
-## About
+> A cellular barcode demultiplexing tool of FASTQ files
 
-Next-generation sequencing can currently produce hundreds of millions of reads
-per lane of sample and that number increases at a dizzying rate.  Barcoding
-individual sequences for multiple lines or multiple species is a cost-efficient
-method to sequence and analyze a broad range of data.
+## Content
 
-Sabre is a tool that will demultiplex barcoded reads into separate files. 
-It will work on both single-end and paired-end data in fastq format.
-It simply compares the provided barcodes with each read and separates
-the read into its appropriate barcode file, after stripping the barcode from
-the read (and also stripping the quality values of the barcode bases).  If
-a read does not have a recognized barcode, then it is put into the unknown file.  
-Sabre also has an option (-m) to allow mismatches of the barcodes.
+- [Install](#install)
+- [Quick start](#quick-start)
+- [Usage](#usage)
 
-Sabre also supports gzipped file inputs.  Also, since sabre does not use the 
-quality values in any way, it can be used on fasta data that is converted to
-fastq by creating fake quality values.
+## Install
 
-Finally, after demultiplexing, sabre outputs a summary of how many records
-went into each barcode file.
+```BASH
+git clone https://github.com/serine/sabre
+cd src
+make
+```
 
-## Requirements 
+## Quick start
 
-Sabre requires a C compiler; GCC or clang are recommended.  Sabre
-relies on Heng Li's kseq.h, which is bundled with the source.
-
-Sabre also requires Zlib, which can be obtained at
-<http://www.zlib.net/>.
-
-## Building and Installing Sabre
-
-To build Sabre, enter:
-
-    make
-
-Then, copy or move "sabre" to a directory in your $PATH.
+```BASH
+sabre -f MultiplexRNASeq_S1_R1_001.fastq.gz \
+      -r MultiplexRNASeq_S1_R2_001.fastq.gz \
+      -b barcodes.txt \
+      -c \
+      -u \
+      -m 2 \
+      -l 10 \
+      -a 1 \
+      -s sabre.txt \
+      -t 12
+```
 
 ## Usage
 
-Sabre has two modes to work with both paired-end and single-end
-reads: `sabre se` and `sabre pe`.
+> This tool is under development and this is very much an alpha version
+> In it's current form the tool is highly customised a particular multiplexing protocol
 
-Running sabre by itself will print the help:
+### Cellular barcodes
 
-    sabre
+In order to demultiplex the use needs to provide `barcodes.txt` file, which is three column tab delimited file
 
-Running sabre with either the "se" or "pe" commands will give help
-specific to those commands:
+```
+sample_name group barcode
+```
 
-    sabre se
-    sabre pe
+currently group is semi-redundant column, it there for a feature that in the development. for most use cases group can equals to barcode
 
-### Sabre Single End (`sabre se`)
+e.g
 
-`sabre se` takes an input fastq file and an input barcode data file and outputs 
-the reads demultiplexed into separate files using the file names from the data file.
-The barcodes will be stripped from the reads and the quality values of the barcode
-bases will also be removed.  Any reads with unknown barcodes get put into the "unknown" 
-file specified on the command line.  The -m option allows for mismatches in the barcodes.
-
-#### Barcode data file format for single end
-
-    barcode1 barcode1_output_file.fastq
-    barcode2 barcode2_output_file.fastq
-    etc...
-
-Be aware that if you do not format the barcode data file correctly, sabre will not work properly.
-
-#### Example
-
-    sabre se -f input_file.fastq -b barcode_data.txt -u unknown_barcode.fastq
-    sabre se -m 1 -f input_file.fastq -b barcode_data.txt -u unknown_barcode.fastq
-
-### Sabre Paired End (`sabre pe`)
-
-`sabre pe` takes two paired-end files and a barcode data file as input and outputs
-the reads demultiplexed into separate paired-end files using the file names from the 
-data file.  The barcodes will be stripped from the reads and the quality values of the barcode 
-bases will also be removed.  Any reads with unknown barcodes get put into the "unknown" files 
-specified on the command line.  It also has an option (-c) to remove barcodes from both files.  
-Using this option means that if sabre finds a barcode in the first file, it assumes the paired 
-read in the other file has the same barcode and will strip it (along with the quality values).  
-The -m option allows for mismatches in the barcodes.
-
-#### Barcode data file format for paired end
-
-    barcode1 barcode1_output_file1.fastq barcode1_output_file2.fastq
-    barcode2 barcode2_output_file1.fastq barcode2_output_file2.fastq
-    etc...
-
-Be aware that if you do not format the barcode data file correctly, sabre will not work properly.
-
-#### Examples
-
-    sabre pe -f input_file1.fastq -r input_file2.fastq -b barcode_data.txt \
-    -u unknown_barcode1.fastq -w unknown_barcode1.fastq
-
-    sabre pe -c -f input_file1.fastq -r input_file2.fastq -b barcode_data.txt \
-    -u unknown_barcode1.fastq -w unknown_barcode1.fastq
-
-    sabre pe -m 2 -f input_file1.fastq -r input_file2.fastq -b barcode_data.txt \
-    -u unknown_barcode1.fastq -w unknown_barcode1.fastq
+```
+cntr_rep1    TAAGGCGA        TAAGGCGA
+cntr_rep2    CGTACTAG        CGTACTAG
+treat_rep1   AGGCAGAA        AGGCAGAA
+treat_rep2   TCCTGAGC        TCCTGAGC
+```
