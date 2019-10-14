@@ -32,7 +32,7 @@ sabre.o: sabre.h
 
 build: $(OBJ)
 	$(CC) $(CFLAGS) $(OBJ) -o $(EXE) $(LDFLAGS)
-	ln -sf $(DSRC)/$(EXE) ../sabre
+	#ln -sf $(DSRC)/$(EXE) ../sabre
 
 dev: $(OBJDEV)
 	$(CC) $(CFLAGSDEV) $(SRC) -o $(EXE)-dev $(LDFLAGS)
