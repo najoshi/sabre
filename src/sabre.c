@@ -216,6 +216,11 @@ int main(int argc, char *argv[]) {
     // https://www.hackerearth.com/practice/data-structures/linked-list/singly-linked-list/tutorial/
     // where each node is represents one barcode from the barcode file
     bc_fd = fopen(bc_fn, "r");
+    if (!bc_fd) {
+        fprintf(stderr, "ERROR: Unable to barcode file\n");
+        exit(EXIT_FAILURE);
+    }
+
     head = NULL;
     curr = NULL;
 
