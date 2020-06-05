@@ -23,6 +23,7 @@ void usage(int status) {
                      \n        -l, --min-umi-len INT         Minimum UMI length to keep [0]\
                      \n        -a, --max-5prime-crop INT     Maximum number of possible bases cropped from 5prime [0]\
                      \n        -n, --no-comment              Drop extra comments from FASTQ header [NULL]\
+                     \n        -g, --gz-out                  gzip the output files (requires pigz or gzip in PATH)\
                      \n        -s, --stats FILE              Write stats to file instead of STDOUT [STDOUT]\
                      \n\
                      \n    Extras:\
