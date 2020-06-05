@@ -14,6 +14,20 @@
 
 #include "demultiplex.h"
 
+// Is m1 a better match than m2?  0 -> yes, use m1.  1 -> no, stick with m2
+int better(match_ret_t m1, match_ret_t m2) {
+    if (m1.cropped<0)
+        return 0;
+    if (m2.cropped<0)
+        return 1;
+    return (m1.cropped + m1.mismatches) < (m2.cropped+m2.mismatches);
+}
+
+// Is m the best possible match?
+int best(match_ret_t m) {
+    return m.cropped==0 && m.mismatches==0;
+}
+
 void* demult_runner(void *arg) {
 
     char fqread1[MAX_READ_SIZE];
@@ -27,9 +41,6 @@ void* demult_runner(void *arg) {
 
     init_fq_rec(fq_rec1);
     init_fq_rec(fq_rec2);
-
-    barcode_data_t *curr;
-    curr = NULL;
 
     thread_data_t* thread_data = (thread_data_t*)arg;
     //int my_line_num;
@@ -71,31 +82,28 @@ void* demult_runner(void *arg) {
         //*thread_data->line_num += 1;
         pthread_mutex_unlock(thread_data->in_lock);
 
-        int n_crop = 0;
-
+        // Store a copy of the barcode found in the read (including the mismatches)
         char *actl_bc = NULL;
 
         /* Step 1: Find matching barcode */
-        int got_match = 0;
-        curr = thread_data->curr;
-        while(curr) {
-
+        match_ret_t best_match = {-1,-1};
+        barcode_data_t *best_bc = NULL;
+        for (barcode_data_t *curr = thread_data->curr; curr!=NULL; curr = curr->next) {
             for (int i=0; curr->bc[i]; i++) {
-                n_crop = chk_bc_mtch(curr->bc[i], fq_rec1->seq, thread_data->params->mismatch, thread_data->params->max_5prime_crop);
-                if(n_crop >= 0) {
-                    //found matching barcode
-                    actl_bc = strndup( (fq_rec1->seq)+n_crop, strlen(curr->bc[i]) );
-                    got_match = 1;
-                    break;
+                match_ret_t mtch = chk_bc_mtch(curr->bc[i], fq_rec1->seq, thread_data->params->mismatch, thread_data->params->max_5prime_crop);
+                if(better(mtch, best_match)) {
+                    //found better match
+                    best_match = mtch;
+                    best_bc = curr;
+                    if (actl_bc) free(actl_bc);
+                    actl_bc = strndup( (fq_rec1->seq)+mtch.cropped, strlen(curr->bc[i]) );
+                    if (best(best_match))
+                        break;
                 }
-
             }
 
-            if(got_match) {
+            if (best(best_match))
                 break;
-            }
-
-            curr = curr->next;
         }
 
         /* Step 2: Write read out into barcode specific file */
@@ -111,11 +119,11 @@ void* demult_runner(void *arg) {
 
         char *umi_idx = NULL;
 
-        if(curr != NULL) {
+        if(best_bc != NULL) {
             //for now assume barcode and umi are in R1 read
             if(thread_data->params->umi > 0) {
 
-                const char *actl_umi_idx = (fq_rec1->seq)+strlen(actl_bc)+n_crop;
+                const char *actl_umi_idx = (fq_rec1->seq)+strlen(actl_bc)+best_match.cropped;
 
                 if(strlen(actl_umi_idx) < thread_data->params->min_umi_len) {
                     pthread_mutex_lock(thread_data->out_lock);
@@ -130,32 +138,32 @@ void* demult_runner(void *arg) {
             }
 
             if(thread_data->params->combine > 0 && actl_bc != NULL) {
-                get_merged_fqread(fqread1, fq_rec1, fq_rec2, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
+                get_merged_fqread(fqread1, fq_rec1, fq_rec2, actl_bc, umi_idx, thread_data->params->no_comment, best_match.cropped);
 
                 pthread_mutex_lock(thread_data->out_lock);
-                fprintf(curr->bcfile1, "%s", fqread1);
+                fprintf(best_bc->bcfile1, "%s", fqread1);
                 pthread_mutex_unlock(thread_data->out_lock);
 
             }
             else {
-                get_fqread(fqread1, fq_rec1, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
+                get_fqread(fqread1, fq_rec1, actl_bc, umi_idx, thread_data->params->no_comment, best_match.cropped);
 
                 pthread_mutex_lock(thread_data->out_lock);
-                fprintf(curr->bcfile1, "%s", fqread1);
+                fprintf(best_bc->bcfile1, "%s", fqread1);
                 pthread_mutex_unlock(thread_data->out_lock);
 
                 if(thread_data->params->paired > 0) {
-                    get_fqread(fqread2, fq_rec1, actl_bc, umi_idx, thread_data->params->no_comment, n_crop);
+                    get_fqread(fqread2, fq_rec1, actl_bc, umi_idx, thread_data->params->no_comment, best_match.cropped);
 
                     pthread_mutex_lock(thread_data->out_lock);
-                    fprintf(curr->bcfile2, "%s", fqread2);
+                    fprintf(best_bc->bcfile2, "%s", fqread2);
                     pthread_mutex_unlock(thread_data->out_lock);
 
                     //dont need to increment buff_cnt, assuming fq_read1 keeps the right count
-                    curr->num_records += 1;
+                    best_bc->num_records += 1;
                 }
             }
-            curr->num_records += 1;
+            best_bc->num_records += 1;
             free(actl_bc);
         }
         else {
