@@ -53,24 +53,25 @@ const char * _mkdir(const char *file_path) {
 //NOTE retuns zero on success
 //strcmp can be used for sorting, returns pos, zero, neg
 //BUT this new implementation can't be used as such just FYI
-int chk_bc_mtch(const char *orig_bc, const char *orig_read, size_t mismatch, int max_5prime_crop) {
+match_ret_t chk_bc_mtch(const char *orig_bc, const char *orig_read, size_t max_mismatch, int max_5prime_crop) {
     int orig_read_len = strlen(orig_read);
     int orig_bc_len = strlen(orig_bc);
     int n_crop = 0;
+    match_ret_t ret = { -1,-1 };
     if(orig_bc_len > orig_read_len) {
         fprintf (stderr,
                 "WARNING: Length of the barcode %d is greater than length of the reads %d.",
                 orig_bc_len, orig_read_len);
-        return -1;
+        return ret;
     }
 
     while(n_crop <= max_5prime_crop) {
 
         if(n_crop > orig_read_len) {
-            return -1;
+            return ret;
         }
 
-        int cnt = 0;
+        int mismatch = 0;
         char u1, u2;
         const char *bc = orig_bc;
         const char *read = orig_read+n_crop;
@@ -81,25 +82,29 @@ int chk_bc_mtch(const char *orig_bc, const char *orig_read, size_t mismatch, int
             u2 = *read++;
 
             if (u1 != u2) {
-                cnt++;
-                if (cnt > mismatch) {
+                mismatch++;
+                if (mismatch > max_mismatch) {
                     break;
                 }
             }
 
             if (u1 == '\0' || u2 == '\0') {
-                return n_crop;
+                ret.cropped = n_crop;
+                ret.mismatches = mismatch;
+                return ret;
             }
         }
 
-        if(cnt <= mismatch) {
-            return n_crop;
+        if(mismatch <= max_mismatch) {
+            ret.cropped = n_crop;
+            ret.mismatches = mismatch;
+            return ret;
         }
 
         n_crop++;
     }
     //this is in the case of error
-    return -1;
+    return ret;
 }
 
 // https://stackoverflow.com/questions/21880730/c-what-is-the-best-and-fastest-way-to-concatenate-strings
