@@ -9,8 +9,8 @@ DSRC=src
 
 #CFLAGS = -Wall -O2 -std=c99 -pedantic -DVERSION=$(VERSION)
 # need to quote GIT_VERSION so that the value gets passed as a string
-CFLAGS = -Wall -O2 -std=c99 -pedantic -DVERSION=\"$(GIT_VERSION)\"
-CFLAGSDEV = -Wall -O0 -g -std=c99 -DVERSION=$(VERSIONDEV)
+CFLAGS = -Wall -O2 -std=gnu99 -pedantic -DVERSION=\"$(GIT_VERSION)\"
+CFLAGSDEV = -Wall -O0 -g -std=gnu99 -DVERSION=\"$(GIT_VERSION)-dev\"
 
 LDFLAGS = -lz -lpthread
 GPROF = -pg

@@ -72,6 +72,7 @@ typedef struct {
     int min_umi_len;
     int max_5prime_crop;
     int no_comment;
+    int gz_out;
 } param_t;
 
 typedef struct {

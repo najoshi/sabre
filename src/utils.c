@@ -109,7 +109,7 @@ match_ret_t chk_bc_mtch(const char *orig_bc, const char *orig_read, size_t max_m
 
 // https://stackoverflow.com/questions/21880730/c-what-is-the-best-and-fastest-way-to-concatenate-strings
 //TODO this is a fastq mystrcat function, that returns a pointer to the end of the string
-void get_fqread(char *fqread, fq_rec_t *fq_rec, char *barcode, char *umi_idx, int no_comment, int n_crop) {
+void get_fqread(char *fqread, fq_rec_t *fq_rec, const char *barcode, char *umi_idx, int no_comment, int n_crop) {
 
     fqread[0] = '\0';
 
@@ -161,7 +161,7 @@ void get_fqread(char *fqread, fq_rec_t *fq_rec, char *barcode, char *umi_idx, in
     strcat(fqread, "\n");
 }
 
-void get_merged_fqread(char *fqread, fq_rec_t *fq_rec1, fq_rec_t *fq_rec2, char *barcode, char *umi_idx, int no_comment, int n_crop) {
+void get_merged_fqread(char *fqread, fq_rec_t *fq_rec1, fq_rec_t *fq_rec2, const char *barcode, char *umi_idx, int no_comment, int n_crop) {
     fqread[0] = '\0';
     //@READNAME:BACRCODE:UMI
     //1st line
@@ -202,7 +202,7 @@ void get_merged_fqread(char *fqread, fq_rec_t *fq_rec1, fq_rec_t *fq_rec2, char 
     strcat(fqread, "\n");
 }
 
-void get_bc_fn(char **bcout_fn, char *s_name, char *barcode, int read_type) {
+void get_bc_fn(char **bcout_fn, char *s_name, char *barcode, int read_type, int gz) {
 
     if(strlen(s_name) > MAX_FILENAME_LENGTH) {
         fprintf (stderr,
@@ -226,6 +226,9 @@ void get_bc_fn(char **bcout_fn, char *s_name, char *barcode, int read_type) {
                 "ERROR: This shouldn't happen, wrong read type was passed through -> %d\n",
                 read_type);
         exit(EXIT_FAILURE);
+    }
+    if (gz) {
+        strcat(*bcout_fn, ".gz");
     }
 }
 

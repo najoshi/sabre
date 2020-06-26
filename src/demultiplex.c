@@ -28,14 +28,12 @@ int best(match_ret_t m) {
     return m.cropped==0 && m.mismatches==0;
 }
 
+void write_out(const param_t *params, pthread_mutex_t *out_lock, metrics_t* metrics,
+               match_ret_t best_match, barcode_data_t *best_bc,
+               const char* actl_bc,
+               fq_rec_t *fq_rec1,fq_rec_t *fq_rec2);
+
 void* demult_runner(void *arg) {
-
-    char fqread1[MAX_READ_SIZE];
-    char fqread2[MAX_READ_SIZE];
-
-    fqread1[0] = '\0';
-    fqread2[0] = '\0';
-
     fq_rec_t *fq_rec1 = (fq_rec_t*) malloc(sizeof(fq_rec_t));
     fq_rec_t *fq_rec2 = (fq_rec_t*) malloc(sizeof(fq_rec_t));
 
@@ -117,76 +115,9 @@ void* demult_runner(void *arg) {
 
         //pthread_cond_broadcast(thread_data->cv);  // Tell everyone it might be their turn!
 
-        char *umi_idx = NULL;
-
-        if(best_bc != NULL) {
-            //for now assume barcode and umi are in R1 read
-            if(thread_data->params->umi > 0) {
-
-                const char *actl_umi_idx = (fq_rec1->seq)+strlen(actl_bc)+best_match.cropped;
-
-                if(strlen(actl_umi_idx) < thread_data->params->min_umi_len) {
-                    pthread_mutex_lock(thread_data->out_lock);
-                    fprintf(thread_data->params->umis_2_short_fd, "%s\t%s\t%zu\t%d\n", fq_rec1->name, actl_umi_idx, strlen(actl_umi_idx), thread_data->params->min_umi_len);
-                    pthread_mutex_unlock(thread_data->out_lock);
-                    continue;
-                }
-                else {
-                    umi_idx = strdup(actl_umi_idx);
-                    umi_idx[thread_data->params->min_umi_len] = '\0';
-                }
-            }
-
-            if(thread_data->params->combine > 0 && actl_bc != NULL) {
-                get_merged_fqread(fqread1, fq_rec1, fq_rec2, actl_bc, umi_idx, thread_data->params->no_comment, best_match.cropped);
-
-                pthread_mutex_lock(thread_data->out_lock);
-                fprintf(best_bc->bcfile1, "%s", fqread1);
-                pthread_mutex_unlock(thread_data->out_lock);
-
-            }
-            else {
-                get_fqread(fqread1, fq_rec1, actl_bc, umi_idx, thread_data->params->no_comment, best_match.cropped);
-
-                pthread_mutex_lock(thread_data->out_lock);
-                fprintf(best_bc->bcfile1, "%s", fqread1);
-                pthread_mutex_unlock(thread_data->out_lock);
-
-                if(thread_data->params->paired > 0) {
-                    get_fqread(fqread2, fq_rec1, actl_bc, umi_idx, thread_data->params->no_comment, best_match.cropped);
-
-                    pthread_mutex_lock(thread_data->out_lock);
-                    fprintf(best_bc->bcfile2, "%s", fqread2);
-                    pthread_mutex_unlock(thread_data->out_lock);
-
-                    //dont need to increment buff_cnt, assuming fq_read1 keeps the right count
-                    best_bc->num_records += 1;
-                }
-            }
-            best_bc->num_records += 1;
+        write_out(thread_data->params, thread_data->out_lock, thread_data->metrics, best_match, best_bc, actl_bc, fq_rec1, fq_rec2);
+        if (actl_bc)
             free(actl_bc);
-        }
-        else {
-
-            get_fqread(fqread1, fq_rec1, NULL, NULL, thread_data->params->no_comment, 0);
-
-            pthread_mutex_lock(thread_data->out_lock);
-            fprintf(thread_data->params->unassigned1_fd, "%s", fqread1);
-            pthread_mutex_unlock(thread_data->out_lock);
-
-            thread_data->metrics->num_unknown += 1;
-
-            if(thread_data->params->paired > 0) {
-                get_fqread(fqread2, fq_rec2, NULL, NULL, thread_data->params->no_comment, 0);
-
-                pthread_mutex_lock(thread_data->out_lock);
-                fprintf(thread_data->params->unassigned2_fd, "%s", fqread2);
-                pthread_mutex_unlock(thread_data->out_lock);
-
-                thread_data->metrics->num_unknown += 1;
-            }
-
-        }
 
         thread_data->metrics->total += 2;
     }
@@ -195,4 +126,82 @@ void* demult_runner(void *arg) {
     free(fq_rec2);
     //free(thread_data); according to valgrind report this line isn't needed since no errors given out..
     return NULL;
+}
+
+
+void write_out(const param_t *params, pthread_mutex_t *out_lock, metrics_t* metrics,
+               match_ret_t best_match, barcode_data_t *best_bc,
+               const char* actl_bc,
+               fq_rec_t *fq_rec1,fq_rec_t *fq_rec2) {
+
+    char fqread1[MAX_READ_SIZE];
+    char fqread2[MAX_READ_SIZE];
+
+    fqread1[0] = '\0';
+    fqread2[0] = '\0';
+
+    char *umi_idx = NULL;
+
+    if(best_bc != NULL) {
+        //for now assume barcode and umi are in R1 read
+        if(params->umi > 0) {
+
+            const char *actl_umi_idx = (fq_rec1->seq)+strlen(actl_bc)+best_match.cropped;
+
+            if(strlen(actl_umi_idx) < params->min_umi_len) {
+                pthread_mutex_lock(out_lock);
+                fprintf(params->umis_2_short_fd, "%s\t%s\t%zu\t%d\n", fq_rec1->name, actl_umi_idx, strlen(actl_umi_idx), params->min_umi_len);
+                pthread_mutex_unlock(out_lock);
+                return;
+            }
+            else {
+                umi_idx = strdup(actl_umi_idx);
+                umi_idx[params->min_umi_len] = '\0';
+            }
+        }
+
+        if(params->combine > 0 && actl_bc != NULL) {
+            get_merged_fqread(fqread1, fq_rec1, fq_rec2, actl_bc, umi_idx, params->no_comment, best_match.cropped);
+
+            pthread_mutex_lock(out_lock);
+            fputs(fqread1, best_bc->bcfile1);
+            pthread_mutex_unlock(out_lock);
+
+        }
+        else {
+            get_fqread(fqread1, fq_rec1, actl_bc, umi_idx, params->no_comment, best_match.cropped);
+
+            pthread_mutex_lock(out_lock);
+            fputs(fqread1, best_bc->bcfile1);
+
+            if(params->paired > 0) {
+                get_fqread(fqread2, fq_rec1, actl_bc, umi_idx, params->no_comment, best_match.cropped);
+
+                fputs(fqread2, best_bc->bcfile2);
+
+                //dont need to increment buff_cnt, assuming fq_read1 keeps the right count
+                best_bc->num_records += 1;
+            }
+            pthread_mutex_unlock(out_lock);
+        }
+        best_bc->num_records += 1;
+    }
+    else {
+
+        get_fqread(fqread1, fq_rec1, NULL, NULL, params->no_comment, 0);
+
+        pthread_mutex_lock(out_lock);
+        fputs(fqread1, params->unassigned1_fd);
+
+        metrics->num_unknown += 1;
+
+        if(params->paired > 0) {
+            get_fqread(fqread2, fq_rec2, NULL, NULL, params->no_comment, 0);
+
+            fputs(fqread2, params->unassigned2_fd);
+
+            metrics->num_unknown += 1;
+        }
+        pthread_mutex_unlock(out_lock);
+    }
 }

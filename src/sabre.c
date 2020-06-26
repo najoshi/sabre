@@ -1,7 +1,31 @@
+
 #include "sabre.h"
 #include "utils.h"
 #include "usage.h"
 #include "demultiplex.h"
+
+FILE* my_fopen(const char* fname, int gz) {
+    static char* compressor = NULL;
+
+    if (gz) {
+
+        if (!compressor) {
+            // Guess whether to use pigz or gzip
+            char tmp[100];
+            FILE* fin = popen("pigz --version 2>&1", "r");
+            char* str = fgets(tmp, 50, fin);
+            int found = strncmp("pigz",tmp,4)==0;
+            compressor = str && found ? "pigz -p 2" : "gzip";
+        }
+
+        char command[2048];
+        sprintf(command, "%s > %s", compressor, fname);
+        FILE* ret = popen(command, "w");
+        return ret;
+    } else {
+        return fopen(fname, "w");
+    }
+}
 
 int main(int argc, char *argv[]) {
 
@@ -20,6 +44,7 @@ int main(int argc, char *argv[]) {
         {"stats", required_argument, NULL, 's'},
         {"no-comment", no_argument, 0, 'n'},
         {"threads", optional_argument, 0, 't'},
+        {"gz-out", optional_argument, NULL, 'g'},
         {"version", optional_argument, NULL, 'v'},
         {"help", optional_argument, NULL, 'h'},
         {"story", optional_argument, NULL, 'o'},
@@ -47,8 +72,8 @@ int main(int argc, char *argv[]) {
     FILE* bc_fd;
     char *bc_fn=NULL;
 
-    char *unassigned1_fn=strdup("unassigned_R1.fq");
-    char *unassigned2_fn=strdup("unassigned_R2.fq");
+    char *unassigned1_fn=NULL;
+    char *unassigned2_fn=NULL;
     char *umis_2_short_fn=strdup("umis_too_short.txt");
 
     FILE* log_file;
@@ -64,7 +89,7 @@ int main(int argc, char *argv[]) {
     while (1) {
         int option_index = 0;
         //colon after a flag means should have arguments and no colon means just a flag i.e bool, no args after it
-        optc = getopt_long (argc, argv, "dnucvof:r:b:z:w:m:s:l:z:a:t:", paired_long_options, &option_index);
+        optc = getopt_long (argc, argv, "dnucvogf:r:b:z:w:m:s:l:z:a:t:", paired_long_options, &option_index);
 
         if (optc == -1) break;
 
@@ -120,6 +145,10 @@ int main(int argc, char *argv[]) {
             params.no_comment = 1;
             break;
 
+            case 'g':
+            params.gz_out = 1;
+            break;
+
             case 't':
             threads = atoi (optarg);
             break;
@@ -169,8 +198,14 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    params.unassigned1_fd = fopen(unassigned1_fn, "wb");
-    params.unassigned2_fd = fopen(unassigned2_fn, "wb");
+    if (!unassigned1_fn) {
+        unassigned1_fn= params.gz_out ? strdup("unassigned_R1.fq.gz") : strdup("unassigned_R1.fq");
+    }
+    if (!unassigned2_fn) {
+        unassigned2_fn= params.gz_out ? strdup("unassigned_R2.fq.gz") : strdup("unassigned_R2.fq");
+    }
+    params.unassigned1_fd = my_fopen(unassigned1_fn, params.gz_out);
+    params.unassigned2_fd = my_fopen(unassigned2_fn, params.gz_out);
     params.umis_2_short_fd = fopen(umis_2_short_fn, "a");
 
     // ? where does this goes?
@@ -227,7 +262,7 @@ int main(int argc, char *argv[]) {
     char line_buff[1024];
     int max_items = 6;
     while(fgets(line_buff, 1024, bc_fd)) {
-        curr = (barcode_data_t*) malloc(sizeof(barcode_data_t));
+        curr = (barcode_data_t*) calloc(1,sizeof(barcode_data_t));
 
         char *p = strtok(line_buff, "\t");
         char *s_name = strdup(p);
@@ -237,14 +272,14 @@ int main(int argc, char *argv[]) {
 
         bcout_fn1 = (char *) malloc(MAX_FILENAME_LENGTH*2);
         bcout_fn1[0] = '\0';
-        get_bc_fn(&bcout_fn1, s_name, curr->bc_grp, 1);
-        curr->bcfile1 = fopen(_mkdir(bcout_fn1), "wb");
+        get_bc_fn(&bcout_fn1, s_name, curr->bc_grp, 1, params.gz_out);
+        curr->bcfile1 = my_fopen(_mkdir(bcout_fn1), params.gz_out);
 
         if(params.paired > 0 && params.combine < 0) {
             bcout_fn2 = (char *) malloc(MAX_FILENAME_LENGTH*2);
             bcout_fn2[0] = '\0';
-            get_bc_fn(&bcout_fn2, s_name, curr->bc_grp, 2);
-            curr->bcfile2 = fopen(_mkdir(bcout_fn2), "wb");
+            get_bc_fn(&bcout_fn2, s_name, curr->bc_grp, 2, params.gz_out);
+            curr->bcfile2 = my_fopen(_mkdir(bcout_fn2), params.gz_out);
         }
 
         //TODO for hardcode max limit of items in the barcodes file to 6
@@ -271,7 +306,7 @@ int main(int argc, char *argv[]) {
     free(fq2_fn);
     free(unassigned1_fn);
     free(unassigned2_fn);
-    free(umis_2_short_fn);
+    //free(umis_2_short_fn);
 
     // Threading
     pthread_t tid[threads];
@@ -344,8 +379,6 @@ int main(int argc, char *argv[]) {
                      \n It took %.2f minutes\n",
                      difftime(end, start)/60);
 
-    // good read :)
-    little_story(EXIT_SUCCESS);
 
     fclose(bc_fd);
     fclose(log_file);
@@ -356,7 +389,8 @@ int main(int argc, char *argv[]) {
     curr = head;
     while (curr) {
         fclose(curr->bcfile1);
-        fclose(curr->bcfile2);
+        if (curr->bcfile2)
+            fclose(curr->bcfile2);
 
         free (curr->bc_grp);
         free (curr->bc);
@@ -365,6 +399,6 @@ int main(int argc, char *argv[]) {
         free (temp);
     }
 
-    free(curr);
-    return EXIT_SUCCESS;
+    // good read :)
+    little_story(EXIT_SUCCESS);
 }
