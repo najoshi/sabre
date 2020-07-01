@@ -29,6 +29,10 @@ FILE* my_fopen(const char* fname, int gz) {
 
 int main(int argc, char *argv[]) {
 
+    if(argc < 2) {
+        usage(EXIT_SUCCESS);
+    }
+
     //more about getopts http://www.informit.com/articles/article.aspx?p=175771&seqNum=3
     static struct option paired_long_options[] = {
         {"fq1", required_argument, NULL, 'f'},
@@ -94,7 +98,6 @@ int main(int argc, char *argv[]) {
         if (optc == -1) break;
 
         switch (optc) {
-            if (paired_long_options[option_index].flag != 0) break;
 
             case 'f':
             fq1_fn = (char*) malloc (strlen (optarg) + 1);
